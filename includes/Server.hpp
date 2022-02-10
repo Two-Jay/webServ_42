@@ -15,13 +15,16 @@ private:
 	std::string root;
 	std::string server_name;
 	std::vector<int> port;
+	std::vector<int> fd;
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
 	std::vector<Location> locations;
 
 public:
-	Server(/* args */);
+	Server();
 	~Server();
+
+	void startServer();
 };
 
 #endif
