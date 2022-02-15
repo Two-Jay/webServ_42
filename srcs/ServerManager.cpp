@@ -8,7 +8,7 @@ ServerManager::~ServerManager()
 {
 }
 
-void ServerManager::initServer()
+void ServerManager::createServer()
 {
 	
 }
