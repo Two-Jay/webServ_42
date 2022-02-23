@@ -79,12 +79,12 @@ static std::list<client_info> *clients = new std::list<client_info>();
 
 struct client_info *get_client(int s) {
 	std::list<client_info>::iterator iter;
-	for (iter = (*clients).begin; iter != (*clients).end; iter++)
+	for (iter = (*clients).begin(); iter != (*clients).end(); iter++)
 	{
 		if ((*iter).socket == s)
 			break;
 	}
-	if (iter == (*clients).end) return &(*iter);
+	if (iter == (*clients).end()) return &(*iter);
 
 	// struct client_info *ci = clients;
 	// while(ci) {
@@ -128,7 +128,7 @@ void drop_client(struct client_info *client) {
 	// }
 
 	std::list<client_info>::iterator iter;
-	for (iter = (*clients).begin; iter != (*clients).end; iter++)
+	for (iter = (*clients).begin(); iter != (*clients).end(); iter++)
 	{
 		if ((*iter).socket == (*client).socket)
 		{
@@ -185,7 +185,7 @@ fd_set wait_on_clients(int server[]) {
 	// 	ci = ci->next;
 	// }
 	
-	for (std::list<client_info>::iterator iter = (*clients).begin; iter != (*clients).end; iter++)
+	for (std::list<client_info>::iterator iter = (*clients).begin(); iter != (*clients).end(); iter++)
 	{
 		FD_SET((*iter).socket, &reads);
 		if (((*iter).socket > max_socket))
@@ -351,13 +351,11 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 
 void sendResponse(const fd_set reads)
 {
-	struct client_info *client = clients;
-	while (client) {
-		struct client_info *next = client->next;
-		memset(client->request, 0, MAX_REQUEST_SIZE);
-		if (FD_ISSET(client->socket, &reads)) {
-			if (MAX_REQUEST_SIZE == client->received) {
-				send_400(client);
+	std::list<client_info>::iterator client = (*clients).begin();
+	while (client != (*clients).end()) {
+		if (FD_ISSET((*client).socket, &reads)) {
+			if (MAX_REQUEST_SIZE == (*client).received) {
+				send_400(&(*client));
 				continue;
 			}
 			// request에 데이터 채우기
@@ -366,34 +364,31 @@ void sendResponse(const fd_set reads)
 			// 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게
-			int r = recv(client->socket,
-					client->request + client->received,
-					MAX_REQUEST_SIZE - client->received, 0);
-			printf("client->request: %s\n", client->request);
+			int r = recv((*client).socket, (*client).request + (*client).received, MAX_REQUEST_SIZE - (*client).received, 0);
+			printf("client->request: %s\n", (*client).request);
 			if (r < 1) {
-				printf("Unexpected disconnect from %s.\n",
-						get_client_address(client));
-				drop_client(client);
+				printf("Unexpected disconnect from %s.\n", get_client_address(&(*client)));
+				drop_client(&(*client));
 			} else {
-				client->received += r;
-				client->request[client->received] = 0;
-				char *q = strstr(client->request, "\r\n\r\n");
+				(*client).received += r;
+				(*client).request[(*client).received] = 0;
+				char *q = strstr((*client).request, "\r\n\r\n");
 				if (q) {
-					if (strncmp("GET /", client->request, 5) == 0) {
-						char *path = client->request + 4;
+					if (strncmp("GET /", (*client).request, 5) == 0) {
+						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
 						if (!end_path) {
-							send_400(client);
+							send_400(&(*client));
 						} else {
 							*end_path = 0;
-							serve_resource(client, path);
+							serve_resource(&(*client), path);
 						}
-					} else if (strncmp("POST /", client->request, 6) == 0) {
+					} else if (strncmp("POST /", (*client).request, 6) == 0) {
 						// post
-						char *path = client->request + 4;
+						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
 						if (!end_path) {
-							send_400(client);
+							send_400(&(*client));
 						} else {
 							*end_path = 0;
 							char *data = q + 4;
@@ -401,16 +396,16 @@ void sendResponse(const fd_set reads)
 							FILE *fp = fopen("cookies/1", "a");
 							fwrite(data, strlen(data), 1, fp);
 							fclose(fp);
-							serve_resource_p(client, path, data);
+							serve_resource_p(&(*client), path, data);
 						}
 					}
 					else {
-						send_400(client);
+						send_400(&(*client));
 					}
 				}
 			}
 		}
-		client = next;
+		client++;
 	}//while(client)
 }
 
