@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 const char *get_content_type(const char *path) {
 	const char *last_dot = strrchr(path, '.');
@@ -270,16 +271,16 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 	send(client->socket, buffer, strlen(buffer), 0);
 
 	FILE *cookie = fopen("cookies/1", "r");
-	if (!cookie) {
-		cookie = fopen("cookies/1", "a");
-		sprintf(buffer, "Set-Cookie: id=1\r\n");
-		send(client->socket, buffer, strlen(buffer), 0);
-	} else {
-		sprintf(buffer, "Cookie: id=1\r\n");
-		send(client->socket, buffer, strlen(buffer), 0);
-		fclose(cookie);
-		cookie = fopen("cookies/1", "a");
-	}
+	// if (!cookie) {
+	// 	cookie = fopen("cookies/1", "a");
+	// 	sprintf(buffer, "Set-Cookie: id=1\r\n");
+	// 	send(client->socket, buffer, strlen(buffer), 0);
+	// } else {
+	// 	sprintf(buffer, "Cookie: id=1\r\n");
+	// 	send(client->socket, buffer, strlen(buffer), 0);
+	// 	fclose(cookie);
+	// 	cookie = fopen("cookies/1", "a");
+	// }
 	// fwrite(data, sizeof(data), 1, cookie);
 	// fwrite("\n", 1, 1, cookie);
 	fclose(cookie);
@@ -313,6 +314,7 @@ int main() {
 				fprintf(stderr, "accept() failed. (%d)\n", errno);
 				return 1;
 			}
+			fcntl(client->socket, F_SETFL, O_NONBLOCK);
 			printf("New Connection from %s.\n", get_client_address(client));
 		}
 		struct client_info *client = clients;

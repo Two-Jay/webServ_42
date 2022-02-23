@@ -1,7 +1,8 @@
 #include "../includes/ServerManager.hpp"
 
-ServerManager::ServerManager(/* args */)
+ServerManager::ServerManager(std::vector<Server> servers)
 {
+	this->servers = servers;
 }
 
 ServerManager::~ServerManager()

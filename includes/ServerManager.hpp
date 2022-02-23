@@ -11,8 +11,10 @@ private:
 	int max_fd;
 	struct timeval timeout;
 
-public:
 	ServerManager();
+
+public:
+	ServerManager(std::vector<Server> servers);
 	~ServerManager();
 
 	void createServer();

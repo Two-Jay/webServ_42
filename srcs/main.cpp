@@ -7,6 +7,8 @@ int main(int argc, char **argv)
 		return 0;
 	
 	ConfigParser configParser(argv[1]);
-	configParser.parse();
+	ServerManager manager(configParser.parse());
+
+
 	return 0;
 }
