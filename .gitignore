@@ -34,4 +34,5 @@
 # Mac OS
 **.DS_Store
 
-.vscode/
+# VSCode settings
+.vscode/*
