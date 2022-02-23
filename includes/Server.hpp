@@ -24,7 +24,7 @@ public:
 	Server();
 	~Server();
 
-	void startServer();
+	void createSocket();
 };
 
 #endif

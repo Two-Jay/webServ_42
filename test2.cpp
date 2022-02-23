@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <list>
+#include <algorithm>
 
 const char *get_content_type(const char *path) {
 	const char *last_dot = strrchr(path, '.');
@@ -72,40 +74,68 @@ struct client_info {
 	struct client_info *next;
 };
 
-static struct client_info *clients = 0;
+// static struct client_info *clients = 0;
+static std::list<client_info> *clients = new std::list<client_info>();
 
 struct client_info *get_client(int s) {
-	struct client_info *ci = clients;
-	while(ci) {
-		if (ci->socket == s)
-			break ;
-		ci = ci->next;
+	std::list<client_info>::iterator iter;
+	for (iter = (*clients).begin; iter != (*clients).end; iter++)
+	{
+		if ((*iter).socket == s)
+			break;
 	}
-	if (ci) return ci;
-	struct client_info *n =
-		(struct client_info*) calloc(1, sizeof(struct client_info));
-	
+	if (iter == (*clients).end) return &(*iter);
+
+	// struct client_info *ci = clients;
+	// while(ci) {
+	// 	if (ci->socket == s)
+	// 		break ;
+	// 	ci = ci->next;
+	// }
+	// if (ci) return ci;
+
+	// struct client_info *n =
+	// 	(struct client_info*) calloc(1, sizeof(struct client_info));
+
+
+	struct client_info *n = new client_info();
+
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
 		exit(1);
 	}
 
-	n->address_length = sizeof(n->address);
-	n->next = clients;
-	clients = n;
+	// n->address_length = sizeof(n->address);
+	// n->next = clients;
+	// clients = n;
+
+	(*n).address_length = sizeof(struct sockaddr_storage);
+	(*clients).push_back(*n);
+
 	return n;
 }
 
 void drop_client(struct client_info *client) {
 	close(client->socket);
-	struct client_info **p = &clients;
-	while (*p) {
-		if (*p == client) {
-			*p = client->next;
-			free(client);
-			return ;
+	// struct client_info **p = &clients;
+	// while (*p) {
+	// 	if (*p == client) {
+	// 		*p = client->next;
+	// 		free(client);
+	// 		return ;
+	// 	}
+	// 	p = &(*p)->next;
+	// }
+
+	std::list<client_info>::iterator iter;
+	for (iter = (*clients).begin; iter != (*clients).end; iter++)
+	{
+		if ((*iter).socket == (*client).socket)
+		{
+			(*clients).remove(*client);
+			delete client;
+			return;
 		}
-		p = &(*p)->next;
 	}
 	fprintf(stderr, "drop_client not found.\n");
 	exit(1);
@@ -147,13 +177,21 @@ fd_set wait_on_clients(int server[]) {
 		FD_SET(server[i], &reads);
 	}
 	int max_socket = int_max(server);
-	struct client_info *ci = clients;
-	while (ci) {
-		FD_SET(ci->socket, &reads);
-		if (ci->socket > max_socket)
-			max_socket = ci->socket;
-		ci = ci->next;
+	// struct client_info *ci = clients;
+	// while (ci) {
+	// 	FD_SET(ci->socket, &reads);
+	// 	if (ci->socket > max_socket)
+	// 		max_socket = ci->socket;
+	// 	ci = ci->next;
+	// }
+	
+	for (std::list<client_info>::iterator iter = (*clients).begin; iter != (*clients).end; iter++)
+	{
+		FD_SET((*iter).socket, &reads);
+		if (((*iter).socket > max_socket))
+			max_socket = (*iter).socket;
 	}
+
 	if (select(max_socket + 1, &reads, 0, 0, 0) < 0) {
 		fprintf(stderr, "select() failed. (%d)\n", errno);
 		exit(1);
@@ -311,6 +349,96 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 	drop_client(client);
 }
 
+void sendResponse(const fd_set reads)
+{
+	struct client_info *client = clients;
+	while (client) {
+		struct client_info *next = client->next;
+		memset(client->request, 0, MAX_REQUEST_SIZE);
+		if (FD_ISSET(client->socket, &reads)) {
+			if (MAX_REQUEST_SIZE == client->received) {
+				send_400(client);
+				continue;
+			}
+			// request에 데이터 채우기
+			// response()
+			
+			// 받은 데이터 크기 체크
+			// 이미 받은 데이터 다음위치를 체크해서 받음
+			// 최대 사이즈가 MAX 사이즈를 넘지 않게
+			int r = recv(client->socket,
+					client->request + client->received,
+					MAX_REQUEST_SIZE - client->received, 0);
+			printf("client->request: %s\n", client->request);
+			if (r < 1) {
+				printf("Unexpected disconnect from %s.\n",
+						get_client_address(client));
+				drop_client(client);
+			} else {
+				client->received += r;
+				client->request[client->received] = 0;
+				char *q = strstr(client->request, "\r\n\r\n");
+				if (q) {
+					if (strncmp("GET /", client->request, 5) == 0) {
+						char *path = client->request + 4;
+						char *end_path = strstr(path, " ");
+						if (!end_path) {
+							send_400(client);
+						} else {
+							*end_path = 0;
+							serve_resource(client, path);
+						}
+					} else if (strncmp("POST /", client->request, 6) == 0) {
+						// post
+						char *path = client->request + 4;
+						char *end_path = strstr(path, " ");
+						if (!end_path) {
+							send_400(client);
+						} else {
+							*end_path = 0;
+							char *data = q + 4;
+							// printf("recived data(%zu): |%s|\n", strlen(data), data);
+							FILE *fp = fopen("cookies/1", "a");
+							fwrite(data, strlen(data), 1, fp);
+							fclose(fp);
+							serve_resource_p(client, path, data);
+						}
+					}
+					else {
+						send_400(client);
+					}
+				}
+			}
+		}
+		client = next;
+	}//while(client)
+}
+
+void getContentsList()
+{
+
+}
+
+void getContent()
+{
+
+}
+
+void getIndexPage()
+{
+
+}
+
+void postContent()
+{
+
+}
+
+void deleteContent()
+{
+
+}
+
 int main() {
     //서버 소켓 생성
 	int server = create_socket("127.0.0.1", "8080");
@@ -343,67 +471,7 @@ int main() {
 			}
 			printf("New Connection from %s.\n", get_client_address(client));
 		}
-		struct client_info *client = clients;
-		while (client) {
-			struct client_info *next = client->next;
-			memset(client->request, 0, MAX_REQUEST_SIZE);
-			if (FD_ISSET(client->socket, &reads)) {
-				if (MAX_REQUEST_SIZE == client->received) {
-					send_400(client);
-					continue;
-				}
-				// request에 데이터 채우기
-				// response()
-				
-				// 받은 데이터 크기 체크
-				// 이미 받은 데이터 다음위치를 체크해서 받음
-				// 최대 사이즈가 MAX 사이즈를 넘지 않게
-				int r = recv(client->socket,
-						client->request + client->received,
-						MAX_REQUEST_SIZE - client->received, 0);
-				printf("client->request: %s\n", client->request);
-				if (r < 1) {
-					printf("Unexpected disconnect from %s.\n",
-							get_client_address(client));
-					drop_client(client);
-				} else {
-					client->received += r;
-					client->request[client->received] = 0;
-					char *q = strstr(client->request, "\r\n\r\n");
-					if (q) {
-						if (strncmp("GET /", client->request, 5) == 0) {
-							char *path = client->request + 4;
-							char *end_path = strstr(path, " ");
-							if (!end_path) {
-								send_400(client);
-							} else {
-								*end_path = 0;
-								serve_resource(client, path);
-							}
-						} else if (strncmp("POST /", client->request, 6) == 0) {
-							// post
-							char *path = client->request + 4;
-							char *end_path = strstr(path, " ");
-							if (!end_path) {
-								send_400(client);
-							} else {
-								*end_path = 0;
-								char *data = q + 4;
-								// printf("recived data(%zu): |%s|\n", strlen(data), data);
-								FILE *fp = fopen("cookies/1", "a");
-								fwrite(data, strlen(data), 1, fp);
-								fclose(fp);
-								serve_resource_p(client, path, data);
-							}
-						}
-						else {
-							send_400(client);
-						}
-					}
-				}
-			}
-			client = next;
-		}//while(client)
+		sendResponse(reads);
 	}//while(1)
 	printf("\nClosing socket...\n");
 	close(server);
