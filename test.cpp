@@ -310,6 +310,7 @@ int main() {
 			client->socket = accept(server, 
 					(struct sockaddr*)&(client->address),
 					&(client->address_length));
+			printf("client->socket: %d\n", client->socket);
 			if (client->socket < 0) {
 				fprintf(stderr, "accept() failed. (%d)\n", errno);
 				return 1;
