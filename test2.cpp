@@ -62,20 +62,16 @@ void makeClient()
 	std::cout << "get_client-2\n";
 }
 
-void drop_client(struct client_info *client)
+void drop_client(struct client_info client)
 {
-	close(client->socket);
+	close(client.socket);
 
 	std::list<client_info>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
-		if ((*iter).socket == (*client).socket)
+		if ((*iter).socket == client.socket)
 		{
 			clients.erase(iter);
-			// delete client;
-			// (*clients).remove(*client);
-			// delete client;
-			// clients.
 			return;
 		}
 	}
@@ -142,21 +138,26 @@ fd_set wait_on_clients(std::vector<int> server)
 	return reads;
 }
 
-void send_400(struct client_info *client)
+void sendErrorPage(int code, struct client_info *clent)
+{
+
+}
+
+void send_400(struct client_info client)
 {
 	const char *c400 = "HTTP/1.1 400 Bad Request\r\n"
 					"Connection: close\r\n"
 					"Content-Length: 11\r\n\r\nBad Request";
-	send(client->socket, c400, sizeof(c400), 0);
+	send(client.socket, c400, sizeof(c400), 0);
 	drop_client(client);
 }
 
-void send_404(struct client_info *client)
+void send_404(struct client_info client)
 {
 	const char *c404 = "HTTP/1.1 404 Not Found\r\n"
 					"Connection: close\r\n"
 					"Content-Length: 9\r\n\r\nNot Found";
-	send(client->socket, c404, sizeof(c404), 0);
+	send(client.socket, c404, sizeof(c404), 0);
 	drop_client(client);
 }
 
@@ -167,12 +168,12 @@ void serve_resource(struct client_info *client, const char *path)
 	if (strcmp(path, "/") == 0) path = "index.html";
 	if (strlen(path) > 100)
 	{
-		send_400(client);
+		send_400(*client);
 		return;
 	}
 	if (strstr(path, ".."))
 	{
-		send_404(client);
+		send_404(*client);
 		return ;
 	}
 	
@@ -181,7 +182,7 @@ void serve_resource(struct client_info *client, const char *path)
 	FILE *fp = fopen(full_path, "rb");
 	if (!fp)
 	{
-		send_404(client);
+		send_404(*client);
 		return ;
 	}
 	// file size 계산
@@ -214,7 +215,7 @@ void serve_resource(struct client_info *client, const char *path)
 	}
 	fclose(fp);
 	std::cout << "drop client\n";
-	drop_client(client);
+	drop_client(*client);
 }
 
 //post 요청 처리
@@ -224,12 +225,12 @@ void serve_resource_p(struct client_info *client, const char *path, char *data)
 	if (strcmp(path, "/") == 0) path = "/index.html";
 	if (strlen(path) > 100)
 	{
-		send_400(client);
+		send_400(*client);
 		return;
 	}
 	if (strstr(path, ".."))
 	{
-		send_404(client);
+		send_404(*client);
 		return ;
 	}
 	
@@ -238,7 +239,7 @@ void serve_resource_p(struct client_info *client, const char *path, char *data)
 	FILE *fp = fopen(full_path, "r");
 	if (!fp)
 	{
-		send_404(client);
+		send_404(*client);
 		return ;
 	}
 	// file size 계산
@@ -288,7 +289,7 @@ void serve_resource_p(struct client_info *client, const char *path, char *data)
 		r = fread(buffer, 1, BSIZE, fp);
 	}
 	fclose(fp);
-	drop_client(client);
+	drop_client(*client);
 }
 
 void sendResponse(fd_set reads)
@@ -303,7 +304,7 @@ void sendResponse(fd_set reads)
 			std::cout << "sendResponse-2\n";
 			if (MAX_REQUEST_SIZE == (*client).received)
 			{
-				send_400(&(*client));
+				send_400(*client);
 				continue;
 			}
 			// request에 데이터 채우기
@@ -317,7 +318,7 @@ void sendResponse(fd_set reads)
 			if (r < 1)
 			{
 				printf("Unexpected disconnect from %s.\n", get_client_address(&(*client)));
-				drop_client(&(*client));
+				drop_client(*client);
 			}
 			else
 			{
@@ -332,7 +333,7 @@ void sendResponse(fd_set reads)
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
 						if (!end_path) {
-							send_400(&(*client));
+							send_400(*client);
 						} else {
 							*end_path = 0;
 							serve_resource(&(*client), path);
@@ -344,7 +345,7 @@ void sendResponse(fd_set reads)
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
 						if (!end_path) {
-							send_400(&(*client));
+							send_400(*client);
 						} else {
 							*end_path = 0;
 							char *data = q + 4;
@@ -357,7 +358,7 @@ void sendResponse(fd_set reads)
 					}
 					else
 					{
-						send_400(&(*client));
+						send_400(*client);
 					}
 				}
 			}
