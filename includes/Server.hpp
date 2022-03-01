@@ -1,6 +1,9 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <string>
 #include <vector>
 #include "DataStructs.hpp"
@@ -14,8 +17,9 @@ private:
 	std::string host;
 	std::string root;
 	std::string server_name;
-	std::vector<int> port;
-	std::vector<int> fd;
+	std::vector<std::string> port;
+	std::vector<int> fd;//??
+	std::vector<int> socket_listen;
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
 	std::vector<Location> locations;

@@ -10,6 +10,7 @@ private:
 	std::vector<Server> servers;
 	int max_fd;
 	struct timeval timeout;
+	std::vector<client_info> clients;
 
 	ServerManager();
 
