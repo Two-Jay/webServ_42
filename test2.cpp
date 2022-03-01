@@ -77,17 +77,17 @@ struct client_info {
 };
 
 // static struct client_info *clients = 0;
-static std::list<client_info> *clients = new std::list<client_info>();
+static std::list<client_info> clients;
 
 struct client_info *get_client(int s) {
 	std::list<client_info>::iterator iter;
-	for (iter = (*clients).begin(); iter != (*clients).end(); iter++)
+	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
 		if ((*iter).socket == s)
 			break;
 	}
 	std::cout << "get_client-1\n";
-	if (iter != clients->end()) return &(*iter);
+	if (iter != clients.end()) return &(*iter);
 
 	// struct client_info *ci = clients;
 	// while(ci) {
@@ -113,7 +113,7 @@ struct client_info *get_client(int s) {
 	// clients = n;
 	
 	(*n).address_length = sizeof(struct sockaddr_storage);
-	(*clients).push_back(*n);
+	clients.push_back(*n);
 	std::cout << "get_client-2\n";
 	return n;
 }
@@ -131,11 +131,12 @@ void drop_client(struct client_info *client) {
 	// }
 
 	std::list<client_info>::iterator iter;
-	for (iter = (*clients).begin(); iter != (*clients).end(); iter++)
+	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
 		if ((*iter).socket == (*client).socket)
 		{
-			(*clients).erase(iter);
+			clients.erase(iter);
+			// delete client;
 			// (*clients).remove(*client);
 			// delete client;
 			// clients.
@@ -190,7 +191,7 @@ fd_set wait_on_clients(std::vector<int> server) {
 	// 	ci = ci->next;
 	// }
 	
-	for (std::list<client_info>::iterator iter = (*clients).begin(); iter != (*clients).end(); iter++)
+	for (std::list<client_info>::iterator iter = clients.begin(); iter != clients.end(); iter++)
 	{
 		FD_SET((*iter).socket, &reads);
 		if (((*iter).socket > max_socket))
@@ -282,6 +283,7 @@ void serve_resource(struct client_info *client, const char *path) {
 		r = fread(buffer, 1, BSIZE, fp);
 	}
 	fclose(fp);
+	std::cout << "drop client\n";
 	drop_client(client);
 }
 
@@ -356,8 +358,8 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 
 void sendResponse(fd_set reads)
 {
-	std::list<client_info>::iterator client = (*clients).begin();
-	while (client != (*clients).end()) {
+	std::list<client_info>::iterator client = clients.begin();
+	while (client != clients.end()) {
 		std::cout << "sendResponse-1\n";
 		std::cout << "client.socket: " << (*client).socket << "\n";
 		std::cout << "reads: " << &reads << "\n";
@@ -460,7 +462,7 @@ int main() {
 		
 		if (FD_ISSET(server, &reads)) {
 			get_client(-1);
-			client_info &client = (clients->back());
+			client_info &client = clients.back();
 			client.socket = accept(server, 
 					(struct sockaddr*)&(client.address),
 					&(client.address_length));
@@ -485,8 +487,8 @@ int main() {
 		}
 		std::cout << "1-start\n";
 		// sendResponse(reads);
-		std::list<client_info>::iterator client = (*clients).begin();
-		while (client != (*clients).end()) {
+		std::list<client_info>::iterator client = clients.begin();
+		while (client != clients.end()) {
 			std::cout << "sendResponse-1\n";
 			std::cout << "client.socket: " << (*client).socket << "\n";
 			std::cout << "reads: " << &reads << "\n";
@@ -550,6 +552,7 @@ int main() {
 	}//while(1)
 	printf("\nClosing socket...\n");
 	close(server);
+	close(server2);
 	printf("Finished.\n");
 	return 0;
 }
