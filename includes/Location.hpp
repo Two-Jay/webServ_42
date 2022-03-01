@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "MethodType.hpp"
+#include "DataStructs.hpp"
 
 class Location
 {
