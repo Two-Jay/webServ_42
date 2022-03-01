@@ -36,3 +36,4 @@
 
 # VSCode settings
 .vscode/*
+.webserv
