@@ -431,12 +431,6 @@ void handler(int signo)
 {
 	if (signo == SIGINT)
 	{
-		std::list<client_info>::iterator iter;
-		for (iter = clients.begin(); iter != clients.end(); iter++)
-		{
-			close((*iter).socket);
-			clients.pop_back();
-		}
 		for (int i = 0; i < vec.size(); i++)
 			close(vec[i]);
 		std::cout << "close\n";
