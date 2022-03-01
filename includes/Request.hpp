@@ -2,7 +2,7 @@
 #define REQUEST_HPP
 
 #include <string>
-#include "MethodType.hpp"
+#include "DataStructs.hpp"
 
 class Request
 {

@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "MethodType.hpp"
+#include "DataStructs.hpp"
 #include "Location.hpp"
 
 class Server
