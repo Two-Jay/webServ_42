@@ -19,16 +19,17 @@ private:
 	std::string server_name;
 	std::vector<std::string> port;
 	std::vector<int> fd;//??
-	std::vector<int> socket_listen;
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
 	std::vector<Location> locations;
 
 public:
+	std::vector<int> listen_socket;
+	
 	Server();
 	~Server();
 
-	void createSocket();
+	void create_socket();
 };
 
 #endif

@@ -8,7 +8,7 @@ Server::~Server()
 {
 }
 
-void Server::createSocket()
+void Server::create_socket()
 {
 	printf("===Server::createSocket===\n");
 	struct addrinfo hints;
@@ -41,6 +41,6 @@ void Server::createSocket()
 			fprintf(stderr, "listen() failed. (%d)\n", errno);
 			exit(1);
 		}
-		this->socket_listen.push_back(socket_listen);
+		this->listen_socket.push_back(socket_listen);
 	}
 }

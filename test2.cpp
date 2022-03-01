@@ -112,6 +112,7 @@ int int_max(std::vector<int> data)
 	return max;
 }
 
+// server manager
 fd_set wait_on_clients(std::vector<int> server)
 {
 	fd_set reads;
@@ -139,11 +140,14 @@ fd_set wait_on_clients(std::vector<int> server)
 	return reads;
 }
 
+//server manager
 void sendErrorPage(int code, struct client_info client)
 {
+	// std::string message = get error message
 	std::string result;
-	result.append("HTTP/1.1" + std::to_string(code) + "\r\n");
+	result.append("HTTP/1.1" + std::to_string(code) + "\r\n"); //message
 	result.append("Connection: close\r\n");
+	// Content-Length: message.length()\r\n\r\nmessage
 
 	const char *c = result.c_str();
 	send(client.socket, c, sizeof(c), 0);
@@ -168,6 +172,7 @@ void send_404(struct client_info client)
 	drop_client(client);
 }
 
+// server manager
 // print the connected client information
 void serve_resource(struct client_info *client, const char *path)
 {
