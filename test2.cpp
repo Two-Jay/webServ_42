@@ -58,8 +58,9 @@ void makeClient()
 	struct client_info newClient;
 
 	newClient.address_length = sizeof(struct sockaddr_storage);
+	newClient.received = 0;
+	memset(newClient.request, 0, MAX_REQUEST_SIZE);
 	clients.push_back(newClient);
-	std::cout << "get_client-2\n";
 }
 
 void drop_client(struct client_info client)
@@ -319,11 +320,16 @@ void sendResponse(fd_set reads)
 			// 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게
-			int r = recv((*client).socket, (*client).request + (*client).received, MAX_REQUEST_SIZE - (*client).received, 0);
+			std::cout << "client.request" << (*client).received << ": " << (*client).request << "\n";
+			int r = recv((*client).socket, 
+					(*client).request + (*client).received, 
+					MAX_REQUEST_SIZE - (*client).received, 0);
 			printf("client->request: %s\n", (*client).request);
 			if (r < 1)
 			{
-				printf("Unexpected disconnect from %s.\n", get_client_address(&(*client)));
+				printf("Unexpected disconnect from (%d)%s.\n", r, get_client_address(&(*client)));
+				fprintf(stderr, "recv() failed. (%d)\n", errno);
+				fprintf(stderr, "%s\n", strerror(errno));
 				drop_client(*client);
 			}
 			else
@@ -429,7 +435,7 @@ void acceptSockets(std::vector<int> servers, fd_set reads)
 
 void handler(int signo)
 {
-	if (signo == SIGINT)
+	if (signo == SIGINT || signo == SIGQUIT)
 	{
 		for (int i = 0; i < vec.size(); i++)
 			close(vec[i]);
@@ -441,6 +447,7 @@ void handler(int signo)
 int main()
 {
 	signal(SIGINT, handler);
+	signal(SIGQUIT, handler);
     //서버 소켓 생성
 	int server = create_socket("127.0.0.1", "8080");
     int server2 = create_socket("127.0.0.1", "8081");
