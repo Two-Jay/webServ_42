@@ -11,6 +11,7 @@
 #include <time.h>
 #include <list>
 #include <algorithm>
+#include <iostream>
 
 const char *get_content_type(const char *path) {
 	const char *last_dot = strrchr(path, '.');
@@ -84,7 +85,7 @@ struct client_info *get_client(int s) {
 		if ((*iter).socket == s)
 			break;
 	}
-	if (iter == (*clients).end()) return &(*iter);
+	if (iter == clients->end()) return &(*iter);
 
 	// struct client_info *ci = clients;
 	// while(ci) {
@@ -132,7 +133,8 @@ void drop_client(struct client_info *client) {
 	{
 		if ((*iter).socket == (*client).socket)
 		{
-			(*clients).remove(*client);
+			(*clients).erase(iter);
+			// (*clients).remove(*client);
 			delete client;
 			return;
 		}
@@ -159,7 +161,7 @@ const char *get_client_serv(struct client_info *ci) {
 	return serv_buffer;
 }
 
-int int_max(int data[]) {
+int int_max(int *data) {
 	int size = sizeof(data) / sizeof(int);
     int max = data[0];
     for (int i = 0; i < size; i++) {
