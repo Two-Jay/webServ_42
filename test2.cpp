@@ -427,6 +427,8 @@ void handler(int signo)
 		}
 		for (int i = 0; i < vec.size(); i++)
 			close(vec[i]);
+		std::cout << "close\n";
+		exit(1);
 	}
 }
 
