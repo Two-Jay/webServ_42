@@ -1,18 +1,4 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <list>
-#include <algorithm>
-#include <iostream>
-#include <vector>
+#include "test2.hpp"
 
 const char *get_content_type(const char *path) {
 	const char *last_dot = strrchr(path, '.');
@@ -65,20 +51,6 @@ int create_socket(const char *host, const char* port) {
 	return socket_listen;
 }
 
-#define MAX_REQUEST_SIZE 2047
-
-struct client_info {
-	socklen_t address_length;
-	struct sockaddr_storage address;
-	int socket;
-	char request[MAX_REQUEST_SIZE + 1];
-	int received;
-	// struct client_info *next;
-};
-
-// static struct client_info *clients = 0;
-static std::list<client_info> clients;
-
 struct client_info *get_client(int s) {
 	std::list<client_info>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
@@ -89,18 +61,6 @@ struct client_info *get_client(int s) {
 	std::cout << "get_client-1\n";
 	if (iter != clients.end()) return &(*iter);
 
-	// struct client_info *ci = clients;
-	// while(ci) {
-	// 	if (ci->socket == s)
-	// 		break ;
-	// 	ci = ci->next;
-	// }
-	// if (ci) return ci;
-
-	// struct client_info *n =
-	// 	(struct client_info*) calloc(1, sizeof(struct client_info));
-
-
 	struct client_info *n = new client_info();
 
 	if (!n) {
@@ -108,10 +68,6 @@ struct client_info *get_client(int s) {
 		exit(1);
 	}
 
-	// n->address_length = sizeof(n->address);
-	// n->next = clients;
-	// clients = n;
-	
 	(*n).address_length = sizeof(struct sockaddr_storage);
 	clients.push_back(*n);
 	std::cout << "get_client-2\n";
@@ -120,15 +76,6 @@ struct client_info *get_client(int s) {
 
 void drop_client(struct client_info *client) {
 	close(client->socket);
-	// struct client_info **p = &clients;
-	// while (*p) {
-	// 	if (*p == client) {
-	// 		*p = client->next;
-	// 		free(client);
-	// 		return ;
-	// 	}
-	// 	p = &(*p)->next;
-	// }
 
 	std::list<client_info>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
@@ -183,13 +130,6 @@ fd_set wait_on_clients(std::vector<int> server) {
 		FD_SET(server[i], &reads);
 	}
 	int max_socket = int_max(server);
-	// struct std::list<client_info> *ci = clients;
-	// while (ci) {
-	// 	FD_SET(ci->socket, &reads);
-	// 	if (ci->socket > max_socket)
-	// 		max_socket = ci->socket;
-	// 	ci = ci->next;
-	// }
 	
 	for (std::list<client_info>::iterator iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -248,7 +188,6 @@ void serve_resource(struct client_info *client, const char *path) {
 	rewind(fp);
 	// file type 얻기
 	const char *ct = get_content_type(full_path);
-#define BSIZE 1024
 	char buffer[BSIZE];
 	sprintf(buffer, "HTTP/1.1 200 OK\r\n");
 	send(client->socket, buffer, strlen(buffer), 0);
@@ -261,18 +200,6 @@ void serve_resource(struct client_info *client, const char *path) {
 
 	sprintf(buffer, "Content-Type: %s\r\n", ct);
 	send(client->socket, buffer, strlen(buffer), 0);
-
-	// FILE *cookie = fopen("cookies/1", "r");
-	// if (!cookie) {
-	// 	cookie = fopen("cookies/1", "w");
-	// 	sprintf(buffer, "Set-Cookie: id=1\r\n");
-	// 	send(client->socket, buffer, strlen(buffer), 0);
-	// } else {
-	// 	sprintf(buffer, "Cookie: id=1\r\n");
-	// 	send(client->socket, buffer, strlen(buffer), 0);
-	// }
-	
-	// fclose(cookie);
 
 	sprintf(buffer, "\r\n");
 	send(client->socket, buffer, strlen(buffer), 0);
@@ -314,7 +241,6 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 	// file type 얻기
 	const char *ct = get_content_type(full_path);
 	fclose(fp);
-#define BSIZE 1024
 	char buffer[BSIZE];
 	sprintf(buffer, "HTTP/1.1 200 OK\r\n");
 	send(client->socket, buffer, strlen(buffer), 0);
@@ -339,8 +265,6 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 		fclose(cookie);
 		cookie = fopen("cookies/1", "a");
 	}
-	// fwrite(data, sizeof(data), 1, cookie);
-	// fwrite("\n", 1, 1, cookie);
 	fclose(cookie);
 
 	sprintf(buffer, "\r\n");
@@ -362,7 +286,6 @@ void sendResponse(fd_set reads)
 	while (client != clients.end()) {
 		std::cout << "sendResponse-1\n";
 		std::cout << "client.socket: " << (*client).socket << "\n";
-		std::cout << "reads: " << &reads << "\n";
 		if (FD_ISSET((*client).socket, &reads)) {
 			std::cout << "sendResponse-2\n";
 			if (MAX_REQUEST_SIZE == (*client).received) {
@@ -419,6 +342,7 @@ void sendResponse(fd_set reads)
 		}
 		client++;
 	}//while(client)
+	std::cout << "1-end\n";
 }
 
 void getContentsList()
@@ -486,69 +410,7 @@ int main() {
 			printf("New Connection from %s.\n", get_client_address(client));
 		}
 		std::cout << "1-start\n";
-		// sendResponse(reads);
-		std::list<client_info>::iterator client = clients.begin();
-		while (client != clients.end()) {
-			std::cout << "sendResponse-1\n";
-			std::cout << "client.socket: " << (*client).socket << "\n";
-			std::cout << "reads: " << &reads << "\n";
-			if (FD_ISSET((*client).socket, &reads)) {
-				std::cout << "sendResponse-2\n";
-				if (MAX_REQUEST_SIZE == (*client).received) {
-					send_400(&(*client));
-					continue;
-				}
-				// request에 데이터 채우기
-				// response()
-				
-				// 받은 데이터 크기 체크
-				// 이미 받은 데이터 다음위치를 체크해서 받음
-				// 최대 사이즈가 MAX 사이즈를 넘지 않게
-				int r = recv((*client).socket, (*client).request + (*client).received, MAX_REQUEST_SIZE - (*client).received, 0);
-				printf("client->request: %s\n", (*client).request);
-				if (r < 1) {
-					printf("Unexpected disconnect from %s.\n", get_client_address(&(*client)));
-					drop_client(&(*client));
-				} else {
-					(*client).received += r;
-					(*client).request[(*client).received] = 0;
-					char *q = strstr((*client).request, "\r\n\r\n");
-					if (q) {
-						if (strncmp("GET /", (*client).request, 5) == 0) {
-							std::cout << "GET /\n";
-							char *path = (*client).request + 4;
-							char *end_path = strstr(path, " ");
-							if (!end_path) {
-								send_400(&(*client));
-							} else {
-								*end_path = 0;
-								serve_resource(&(*client), path);
-							}
-						} else if (strncmp("POST /", (*client).request, 6) == 0) {
-							// post
-							char *path = (*client).request + 4;
-							char *end_path = strstr(path, " ");
-							if (!end_path) {
-								send_400(&(*client));
-							} else {
-								*end_path = 0;
-								char *data = q + 4;
-								// printf("recived data(%zu): |%s|\n", strlen(data), data);
-								FILE *fp = fopen("cookies/1", "a");
-								fwrite(data, strlen(data), 1, fp);
-								fclose(fp);
-								serve_resource_p(&(*client), path, data);
-							}
-						}
-						else {
-							send_400(&(*client));
-						}
-					}
-				}
-			}
-			client++;
-		}//while(client)
-		std::cout << "1-end\n";
+		sendResponse(reads);
 	}//while(1)
 	printf("\nClosing socket...\n");
 	close(server);
