@@ -370,6 +370,28 @@ void deleteContent()
 
 }
 
+void acceptSockets(std::vector<int> servers, fd_set reads)
+{
+	int server;
+	for (int i = 0; i < servers.size(); i++)
+	{
+		server = servers[i];
+		if (FD_ISSET(server, &reads)) {
+			get_client(-1);
+			client_info &client = clients.back();
+			client.socket = accept(server, 
+					(struct sockaddr*)&(client.address),
+					&(client.address_length));
+			std::cout << "client->socket: " << client.socket << "\n";
+			if (client.socket < 0) {
+				fprintf(stderr, "accept() failed. (%d)\n", errno);
+				exit(1);
+			}
+			printf("New Connection from %s.\n", get_client_address(&client));
+		}
+	}
+}
+
 int main() {
     //서버 소켓 생성
 	int server = create_socket("127.0.0.1", "8080");
@@ -383,32 +405,7 @@ int main() {
         // 서버에 들어온 요청 확인
 		// reads = wait_on_clients((int[]){server, server2});
 		reads = wait_on_clients(vec);
-		
-		if (FD_ISSET(server, &reads)) {
-			get_client(-1);
-			client_info &client = clients.back();
-			client.socket = accept(server, 
-					(struct sockaddr*)&(client.address),
-					&(client.address_length));
-			std::cout << "client->socket: " << client.socket << "\n";
-			if (client.socket < 0) {
-				fprintf(stderr, "accept() failed. (%d)\n", errno);
-				return 1;
-			}
-			printf("New Connection from %s.\n", get_client_address(&client));
-		}
-		if (FD_ISSET(server2, &reads)) {
-			struct client_info *client = get_client(-1);
-			client->socket = accept(server2, 
-					(struct sockaddr*)&(client->address),
-					&(client->address_length));
-			std::cout << "client->socket: " << client->socket << "\n";
-			if (client->socket < 0) {
-				fprintf(stderr, "accept() failed. (%d)\n", errno);
-				return 1;
-			}
-			printf("New Connection from %s.\n", get_client_address(client));
-		}
+		acceptSockets(vec, reads);
 		std::cout << "1-start\n";
 		sendResponse(reads);
 	}//while(1)
