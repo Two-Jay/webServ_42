@@ -53,28 +53,13 @@ int create_socket(const char *host, const char* port)
 	return socket_listen;
 }
 
-struct client_info *get_client(int s)
+void makeClient()
 {
-	std::list<client_info>::iterator iter;
-	for (iter = clients.begin(); iter != clients.end(); iter++)
-	{
-		if ((*iter).socket == s)
-			break;
-	}
-	std::cout << "get_client-1\n";
-	if (iter != clients.end()) return &(*iter);
+	struct client_info newClient;
 
-	struct client_info *n = new client_info();
-
-	if (!n) {
-		fprintf(stderr, "Out of memory.\n");
-		exit(1);
-	}
-
-	(*n).address_length = sizeof(struct sockaddr_storage);
-	clients.push_back(*n);
+	newClient.address_length = sizeof(struct sockaddr_storage);
+	clients.push_back(newClient);
 	std::cout << "get_client-2\n";
-	return n;
 }
 
 void drop_client(struct client_info *client)
@@ -413,14 +398,14 @@ void acceptSockets(std::vector<int> servers, fd_set reads)
 	for (int i = 0; i < servers.size(); i++)
 	{
 		server = servers[i];
-		if (FD_ISSET(server, &reads)) {
-			get_client(-1);
+		if (FD_ISSET(server, &reads))
+		{
+			makeClient();
 			client_info &client = clients.back();
-			client.socket = accept(server, 
-					(struct sockaddr*)&(client.address),
-					&(client.address_length));
+			client.socket = accept(server, (struct sockaddr*)&(client.address), &(client.address_length));
 			std::cout << "client->socket: " << client.socket << "\n";
-			if (client.socket < 0) {
+			if (client.socket < 0)
+			{
 				fprintf(stderr, "accept() failed. (%d)\n", errno);
 				exit(1);
 			}
@@ -464,7 +449,7 @@ int main()
 		acceptSockets(vec, reads);
 		std::cout << "1-start\n";
 		sendResponse(reads);
-	}//while(1)
+	}
 	printf("\nClosing socket...\n");
 	close(server);
 	close(server2);
