@@ -370,11 +370,23 @@ void deleteContent()
 
 }
 
+void handler(int signo) {
+	if (signo == SIGINT) {
+		std::list<client_info>::iterator iter;
+		for (iter = clients.begin(); iter != clients.end(); iter++) {
+			close((*iter).socket);
+			clients.pop_back();
+		}
+		for (int i = 0; i < vec.size(); i++)
+			close(vec[i]);
+	}
+}
+
 int main() {
+	signal(SIGINT, handler);
     //서버 소켓 생성
 	int server = create_socket("127.0.0.1", "8080");
     int server2 = create_socket("127.0.0.1", "8081");
-	std::vector<int> vec;
 	vec.push_back(server);
 	vec.push_back(server2);
 
@@ -398,16 +410,17 @@ int main() {
 			printf("New Connection from %s.\n", get_client_address(&client));
 		}
 		if (FD_ISSET(server2, &reads)) {
-			struct client_info *client = get_client(-1);
-			client->socket = accept(server2, 
-					(struct sockaddr*)&(client->address),
-					&(client->address_length));
-			std::cout << "client->socket: " << client->socket << "\n";
-			if (client->socket < 0) {
+			get_client(-1);
+			client_info &client = clients.back();
+			client.socket = accept(server2, 
+					(struct sockaddr*)&(client.address),
+					&(client.address_length));
+			std::cout << "client->socket: " << client.socket << "\n";
+			if (client.socket < 0) {
 				fprintf(stderr, "accept() failed. (%d)\n", errno);
 				return 1;
 			}
-			printf("New Connection from %s.\n", get_client_address(client));
+			printf("New Connection from %s.\n", get_client_address(&client));
 		}
 		std::cout << "1-start\n";
 		sendResponse(reads);

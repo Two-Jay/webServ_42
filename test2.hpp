@@ -9,6 +9,7 @@
 #include <list>
 #include <iostream>
 #include <vector>
+#include <signal.h>
 
 #define MAX_REQUEST_SIZE 2047
 #define BSIZE 1024
@@ -24,3 +25,4 @@ struct client_info {
 
 // static struct client_info *clients = 0;
 static std::list<client_info> clients;
+std::vector<int> vec;
