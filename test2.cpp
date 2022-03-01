@@ -1,6 +1,7 @@
 #include "test2.hpp"
 
-const char *get_content_type(const char *path) {
+const char *get_content_type(const char *path)
+{
 	const char *last_dot = strrchr(path, '.');
 	if (last_dot) {
 		if (strcmp(last_dot, ".css") == 0) return "text/css";
@@ -18,7 +19,8 @@ const char *get_content_type(const char *path) {
 	return "text/plain";
 }
 
-int create_socket(const char *host, const char* port) {
+int create_socket(const char *host, const char* port)
+{
 	printf("Configuring local address...\n");
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
@@ -51,7 +53,8 @@ int create_socket(const char *host, const char* port) {
 	return socket_listen;
 }
 
-struct client_info *get_client(int s) {
+struct client_info *get_client(int s)
+{
 	std::list<client_info>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -74,7 +77,8 @@ struct client_info *get_client(int s) {
 	return n;
 }
 
-void drop_client(struct client_info *client) {
+void drop_client(struct client_info *client)
+{
 	close(client->socket);
 
 	std::list<client_info>::iterator iter;
@@ -94,7 +98,8 @@ void drop_client(struct client_info *client) {
 	exit(1);
 }
 
-const char *get_client_address(struct client_info *ci) {
+const char *get_client_address(struct client_info *ci)
+{
 	static char address_buffer[100];
 	getnameinfo((struct sockaddr *)&ci->address,
 		ci->address_length,
@@ -103,7 +108,8 @@ const char *get_client_address(struct client_info *ci) {
 	return address_buffer;
 }
 
-const char *get_client_serv(struct client_info *ci) {
+const char *get_client_serv(struct client_info *ci)
+{
 	static char serv_buffer[100];
 	getnameinfo((struct sockaddr *)&ci->address,
 		ci->address_length,
@@ -112,21 +118,25 @@ const char *get_client_serv(struct client_info *ci) {
 	return serv_buffer;
 }
 
-int int_max(std::vector<int> data) {
+int int_max(std::vector<int> data)
+{
 	// int size = sizeof(data) / sizeof(int);
     int max = data[0];
-    for (int i = 0; i < data.size(); i++) {
+    for (int i = 0; i < data.size(); i++)
+	{
 		if (max < data[i])
 			max = data[i];
     }
 	return max;
 }
 
-fd_set wait_on_clients(std::vector<int> server) {
+fd_set wait_on_clients(std::vector<int> server)
+{
 	fd_set reads;
 
 	FD_ZERO(&reads);
-	for (int i =0; i<server.size();i++) {
+	for (int i =0; i<server.size();i++)
+	{
 		FD_SET(server[i], &reads);
 	}
 	int max_socket = int_max(server);
@@ -138,7 +148,8 @@ fd_set wait_on_clients(std::vector<int> server) {
 			max_socket = (*iter).socket;
 	}
 
-	if (select(max_socket + 1, &reads, 0, 0, 0) < 0) {
+	if (select(max_socket + 1, &reads, 0, 0, 0) < 0)
+	{
 		fprintf(stderr, "select() failed. (%d)\n", errno);
 		exit(1);
 	}
@@ -146,7 +157,8 @@ fd_set wait_on_clients(std::vector<int> server) {
 	return reads;
 }
 
-void send_400(struct client_info *client) {
+void send_400(struct client_info *client)
+{
 	const char *c400 = "HTTP/1.1 400 Bad Request\r\n"
 					"Connection: close\r\n"
 					"Content-Length: 11\r\n\r\nBad Request";
@@ -154,7 +166,8 @@ void send_400(struct client_info *client) {
 	drop_client(client);
 }
 
-void send_404(struct client_info *client) {
+void send_404(struct client_info *client)
+{
 	const char *c404 = "HTTP/1.1 404 Not Found\r\n"
 					"Connection: close\r\n"
 					"Content-Length: 9\r\n\r\nNot Found";
@@ -163,14 +176,17 @@ void send_404(struct client_info *client) {
 }
 
 // print the connected client information
-void serve_resource(struct client_info *client, const char *path) {
+void serve_resource(struct client_info *client, const char *path)
+{
 	printf("serve_resource %s %s\n", get_client_address(client), path);
 	if (strcmp(path, "/") == 0) path = "index.html";
-	if (strlen(path) > 100) {
+	if (strlen(path) > 100)
+	{
 		send_400(client);
 		return;
 	}
-	if (strstr(path, "..")) {
+	if (strstr(path, ".."))
+	{
 		send_404(client);
 		return ;
 	}
@@ -178,7 +194,8 @@ void serve_resource(struct client_info *client, const char *path) {
 	char full_path[128];
 	sprintf(full_path, "www/html/%s", path);
 	FILE *fp = fopen(full_path, "rb");
-	if (!fp) {
+	if (!fp)
+	{
 		send_404(client);
 		return ;
 	}
@@ -205,7 +222,8 @@ void serve_resource(struct client_info *client, const char *path) {
 	send(client->socket, buffer, strlen(buffer), 0);
 
 	int r = fread(buffer, 1, BSIZE, fp);
-	while (r) {
+	while (r)
+	{
 		send(client->socket, buffer, r, 0);
 		r = fread(buffer, 1, BSIZE, fp);
 	}
@@ -215,14 +233,17 @@ void serve_resource(struct client_info *client, const char *path) {
 }
 
 //post 요청 처리
-void serve_resource_p(struct client_info *client, const char *path, char *data) {
+void serve_resource_p(struct client_info *client, const char *path, char *data)
+{
 	printf("serve_resource %s\n", get_client_address(client));
 	if (strcmp(path, "/") == 0) path = "/index.html";
-	if (strlen(path) > 100) {
+	if (strlen(path) > 100)
+	{
 		send_400(client);
 		return;
 	}
-	if (strstr(path, "..")) {
+	if (strstr(path, ".."))
+	{
 		send_404(client);
 		return ;
 	}
@@ -230,7 +251,8 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 	char full_path[128];
 	sprintf(full_path, "test/1");
 	FILE *fp = fopen(full_path, "r");
-	if (!fp) {
+	if (!fp)
+	{
 		send_404(client);
 		return ;
 	}
@@ -255,11 +277,14 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 	send(client->socket, buffer, strlen(buffer), 0);
 
 	FILE *cookie = fopen("cookies/1", "r");
-	if (!cookie) {
+	if (!cookie)
+	{
 		cookie = fopen("cookies/1", "a");
 		sprintf(buffer, "Set-Cookie: id=1\r\n");
 		send(client->socket, buffer, strlen(buffer), 0);
-	} else {
+	}
+	else
+	{
 		sprintf(buffer, "Cookie: id=1\r\n");
 		send(client->socket, buffer, strlen(buffer), 0);
 		fclose(cookie);
@@ -272,7 +297,8 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 
 	fp = fopen(full_path, "r");
 	int r = fread(buffer, 1, BSIZE, fp);
-	while (r) {
+	while (r)
+	{
 		send(client->socket, buffer, r, 0);
 		r = fread(buffer, 1, BSIZE, fp);
 	}
@@ -283,12 +309,15 @@ void serve_resource_p(struct client_info *client, const char *path, char *data) 
 void sendResponse(fd_set reads)
 {
 	std::list<client_info>::iterator client = clients.begin();
-	while (client != clients.end()) {
+	while (client != clients.end())
+	{
 		std::cout << "sendResponse-1\n";
 		std::cout << "client.socket: " << (*client).socket << "\n";
-		if (FD_ISSET((*client).socket, &reads)) {
+		if (FD_ISSET((*client).socket, &reads))
+		{
 			std::cout << "sendResponse-2\n";
-			if (MAX_REQUEST_SIZE == (*client).received) {
+			if (MAX_REQUEST_SIZE == (*client).received)
+			{
 				send_400(&(*client));
 				continue;
 			}
@@ -300,15 +329,20 @@ void sendResponse(fd_set reads)
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게
 			int r = recv((*client).socket, (*client).request + (*client).received, MAX_REQUEST_SIZE - (*client).received, 0);
 			printf("client->request: %s\n", (*client).request);
-			if (r < 1) {
+			if (r < 1)
+			{
 				printf("Unexpected disconnect from %s.\n", get_client_address(&(*client)));
 				drop_client(&(*client));
-			} else {
+			}
+			else
+			{
 				(*client).received += r;
 				(*client).request[(*client).received] = 0;
 				char *q = strstr((*client).request, "\r\n\r\n");
-				if (q) {
-					if (strncmp("GET /", (*client).request, 5) == 0) {
+				if (q)
+				{
+					if (strncmp("GET /", (*client).request, 5) == 0)
+					{
 						std::cout << "GET /\n";
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
@@ -318,7 +352,9 @@ void sendResponse(fd_set reads)
 							*end_path = 0;
 							serve_resource(&(*client), path);
 						}
-					} else if (strncmp("POST /", (*client).request, 6) == 0) {
+					}
+					else if (strncmp("POST /", (*client).request, 6) == 0)
+					{
 						// post
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
@@ -334,7 +370,8 @@ void sendResponse(fd_set reads)
 							serve_resource_p(&(*client), path, data);
 						}
 					}
-					else {
+					else
+					{
 						send_400(&(*client));
 					}
 				}
@@ -392,15 +429,32 @@ void acceptSockets(std::vector<int> servers, fd_set reads)
 	}
 }
 
-int main() {
+void handler(int signo)
+{
+	if (signo == SIGINT)
+	{
+		std::list<client_info>::iterator iter;
+		for (iter = clients.begin(); iter != clients.end(); iter++)
+		{
+			close((*iter).socket);
+			clients.pop_back();
+		}
+		for (int i = 0; i < vec.size(); i++)
+			close(vec[i]);
+	}
+}
+
+int main()
+{
+	signal(SIGINT, handler);
     //서버 소켓 생성
 	int server = create_socket("127.0.0.1", "8080");
     int server2 = create_socket("127.0.0.1", "8081");
-	std::vector<int> vec;
 	vec.push_back(server);
 	vec.push_back(server2);
 
-	while (1) {
+	while (1)
+	{
 		fd_set reads;
         // 서버에 들어온 요청 확인
 		// reads = wait_on_clients((int[]){server, server2});
