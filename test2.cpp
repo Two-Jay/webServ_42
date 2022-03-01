@@ -138,9 +138,15 @@ fd_set wait_on_clients(std::vector<int> server)
 	return reads;
 }
 
-void sendErrorPage(int code, struct client_info *clent)
+void sendErrorPage(int code, struct client_info client)
 {
+	std::string result;
+	result.append("HTTP/1.1" + std::to_string(code) + "\r\n");
+	result.append("Connection: close\r\n");
 
+	const char *c = result.c_str();
+	send(client.socket, c, sizeof(c), 0);
+	drop_client(client);
 }
 
 void send_400(struct client_info client)
@@ -168,12 +174,12 @@ void serve_resource(struct client_info *client, const char *path)
 	if (strcmp(path, "/") == 0) path = "index.html";
 	if (strlen(path) > 100)
 	{
-		send_400(*client);
+		sendErrorPage(400, *client);
 		return;
 	}
 	if (strstr(path, ".."))
 	{
-		send_404(*client);
+		sendErrorPage(404, *client);
 		return ;
 	}
 	
@@ -182,7 +188,7 @@ void serve_resource(struct client_info *client, const char *path)
 	FILE *fp = fopen(full_path, "rb");
 	if (!fp)
 	{
-		send_404(*client);
+		sendErrorPage(404, *client);
 		return ;
 	}
 	// file size 계산
@@ -225,12 +231,12 @@ void serve_resource_p(struct client_info *client, const char *path, char *data)
 	if (strcmp(path, "/") == 0) path = "/index.html";
 	if (strlen(path) > 100)
 	{
-		send_400(*client);
+		sendErrorPage(400, *client);
 		return;
 	}
 	if (strstr(path, ".."))
 	{
-		send_404(*client);
+		sendErrorPage(404, *client);
 		return ;
 	}
 	
@@ -239,7 +245,7 @@ void serve_resource_p(struct client_info *client, const char *path, char *data)
 	FILE *fp = fopen(full_path, "r");
 	if (!fp)
 	{
-		send_404(*client);
+		sendErrorPage(404, *client);
 		return ;
 	}
 	// file size 계산
@@ -304,7 +310,7 @@ void sendResponse(fd_set reads)
 			std::cout << "sendResponse-2\n";
 			if (MAX_REQUEST_SIZE == (*client).received)
 			{
-				send_400(*client);
+				sendErrorPage(400, *client);
 				continue;
 			}
 			// request에 데이터 채우기
@@ -332,9 +338,12 @@ void sendResponse(fd_set reads)
 						std::cout << "GET /\n";
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
-						if (!end_path) {
-							send_400(*client);
-						} else {
+						if (!end_path)
+						{
+							sendErrorPage(400, *client);
+						}
+						else
+						{
 							*end_path = 0;
 							serve_resource(&(*client), path);
 						}
@@ -344,9 +353,12 @@ void sendResponse(fd_set reads)
 						// post
 						char *path = (*client).request + 4;
 						char *end_path = strstr(path, " ");
-						if (!end_path) {
-							send_400(*client);
-						} else {
+						if (!end_path)
+						{
+							sendErrorPage(400, *client);
+						}
+						else
+						{
 							*end_path = 0;
 							char *data = q + 4;
 							// printf("recived data(%zu): |%s|\n", strlen(data), data);
@@ -358,7 +370,7 @@ void sendResponse(fd_set reads)
 					}
 					else
 					{
-						send_400(*client);
+						sendErrorPage(400, *client);
 					}
 				}
 			}
