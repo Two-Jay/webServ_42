@@ -2,26 +2,31 @@
 #define CLIENT_HPP
 
 #include <sys/socket.h>
+#include <netdb.h>
 #include <string>
+#include "../includes/DataStructs.hpp"
 
 class Client
 {
 private:
-	std::string request;
-	int received;
+	int socket;
+	int received_size;
 	
 public:
 	socklen_t address_length;
 	struct sockaddr_storage address;
-	int socket;
+	char request[MAX_REQUEST_SIZE + 1];
 
 	Client();
 	~Client();
 	
-	static Client make_client();
-	void drop_client();
+	int get_socket() const;
+	int get_received_size() const;
+	void set_socket(int value);
+	void set_received_size(int size);
+	
 	const char *get_client_address();
-	const char *get_client_serv();
+	const char *get_client_port();
 };
 
 #endif

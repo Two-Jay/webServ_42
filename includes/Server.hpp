@@ -14,16 +14,16 @@ class Server
 private:
 	int client_body_limit;
 	bool autoindex;
-	std::string host;
 	std::string root;
 	std::string server_name;
-	std::vector<std::string> port;
 	std::vector<int> fd;//??
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
 	std::vector<Location> locations;
 
 public:
+	std::string host;
+	std::vector<std::string> port;
 	std::vector<int> listen_socket;
 	
 	Server();

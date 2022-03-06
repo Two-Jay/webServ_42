@@ -8,18 +8,20 @@ INCS_PATH		= ./includes
 
 SRCS			= $(SRCS_PATH)/main.cpp \
 					$(SRCS_PATH)/Server.cpp $(SRCS_PATH)/Location.cpp \
+					$(SRCS_PATH)/Client.cpp \
 					$(SRCS_PATH)/Request.cpp $(SRCS_PATH)/Response.cpp \
 					$(SRCS_PATH)/ServerManager.cpp $(SRCS_PATH)/ConfigParser.cpp
 
 OBJS			= $(SRCS:.cpp=.o)
 
 CXX				= clang++
-CXXFLAGS		= 
+#CXXFLAGS		= -Wall -Werror -Wextra -std=c++98
+CXXFLAGS		= -std=c++98
 
 all:			$(NAME)
 
 $(NAME):		$(OBJS)
-				$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)
+				$(CXX) $(CXXFLAGS) -I $(INCS_PATH) -o $(NAME) $(OBJS)
 
 clean:
 				rm -f $(OBJS)

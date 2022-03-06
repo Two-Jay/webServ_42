@@ -42,5 +42,6 @@ void Server::create_socket()
 			exit(1);
 		}
 		this->listen_socket.push_back(socket_listen);
+		printf("added!\n");
 	}
 }
