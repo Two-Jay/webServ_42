@@ -32,28 +32,12 @@ std::string Response::make_error_page()
 {
 	std::string result;
 
-	result.append("<!DOCTYPE html>");
-// 	result.append("<h1>" + status + "<h1>");
-// <html>
-// 	<head>
-// 		<meta charset="UTF-8" />
-// 		<title>webserv</title>
-// 	</head>
-// 	<body>
-// 		<h1>42 webserv</h1>
-// 		<h3>This is when you finally understand why a URL starts with HTTP</h3>
-// 		<hr>
-// 		<p>author : yoahn, sunhkim</p>
-// 		<p>Click <a href="board.html">here</a> to test html methods</p>
-// 		<li>
-// 			Subject
-// 			<ul>Make nginx-like html server</ul>
-// 			<ul>Read Config file to configuration</ul>
-// 			<ul>GET, POST, DELETE methods</ul>
-// 			<ul>Parse vaild REQUEST and make good RESPONSE with vaild response code</ul>
-// 			<ul>Run CGI program(Gateway)</ul>
-// 		</li>
-// 	</body>
-// </html>")
-	return "";
+	result.append("<!DOCTYPE html> <html> <head> <meta charset=\"UTF-8\"/> <title>webserv</title> </head>");
+	result.append("<body>");
+	result.append("<h1>" + status.substr(0, 3) + "</h1>");
+	result.append("<h3>" + status.substr(4, status.size()) + "</h3>");
+	result.append("<p>Click <a href=\"index.html\">here</a> to return home.</p>");
+	result.append("</body>");
+	result.append("</html>");
+	return result;
 }
