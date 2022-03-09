@@ -14,6 +14,11 @@ void Response::append_header(std::string first, std::string second)
 	headers.insert(std::make_pair(first, second));
 }
 
+int Response::get_body_size()
+{
+	return body.size();
+}
+
 std::string Response::make_header()
 {
 	std::string result;
@@ -28,7 +33,7 @@ std::string Response::make_header()
 	return result;
 }
 
-std::string Response::make_error_page()
+void Response::make_error_body()
 {
 	std::string result;
 
@@ -39,5 +44,22 @@ std::string Response::make_error_page()
 	result.append("<p>Click <a href=\"index.html\">here</a> to return home.</p>");
 	result.append("</body>");
 	result.append("</html>");
+	
+	body.clear();
+	body = result;
+}
+
+std::string Response::serialize()
+{
+	std::string result;
+
+	result.append("HTTP/1.1 " + status + "\r\n");
+	for (std::map<std::string, std::string>::iterator i = headers.begin(); i != headers.end(); i++)
+	{
+		result.append((*i).first + ": " + (*i).second + "\r\n");	
+	}
+	result.append("\r\n");
+	result.append(body);
+
 	return result;
 }

@@ -54,7 +54,7 @@ void ServerManager::accept_sockets()
 				std::cout << "client->socket: " << client.get_socket() << "\n";
 				if (client.get_socket() < 0)
 				{
-					fprintf(stderr, "accept() failed. (%d)\n", errno);
+					fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
 					exit(1);
 				}
 				printf("New Connection from %s.\n", client.get_client_address());
@@ -101,7 +101,7 @@ void ServerManager::wait_on_clients()
 
 	if (select(max + 1, &reads, 0, 0, 0) < 0)
 	{
-		fprintf(stderr, "select() failed. (%d)\n", errno);
+		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		exit(1);
 	}
     //변화가 생긴 소켓
@@ -110,6 +110,7 @@ void ServerManager::wait_on_clients()
 
 void ServerManager::drop_client(Client client)
 {
+	std::cout << "!! drop client !!\n";
 	close(client.get_socket());
 
 	std::vector<Client>::iterator iter;
@@ -121,7 +122,7 @@ void ServerManager::drop_client(Client client)
 			return;
 		}
 	}
-	fprintf(stderr, "drop_client not found.\n");
+	fprintf(stderr, "[ERROR] drop_client not found.\n");
 	exit(1);
 }
 
@@ -131,8 +132,6 @@ void ServerManager::drop_client(Client client)
 
 void ServerManager::send_response()
 {
-	// std::vector<Client>::iterator client = clients.begin();
-	// while (client != clients.end())
 	for (int i = 0  ; i < clients.size() ; i++)
 	{
 		std::cout << "sendResponse-1\n";
@@ -146,9 +145,8 @@ void ServerManager::send_response()
 				continue;
 			}
 			
-			// 받은 데이터 크기 체크
+			// 최대 사이즈가 MAX 사이즈를 넘지 않게 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
-			// 최대 사이즈가 MAX 사이즈를 넘지 않게
 			std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
@@ -156,9 +154,11 @@ void ServerManager::send_response()
 			if (r < 1)
 			{
 				printf("Unexpected disconnect from (%d)%s.\n", r, clients[i].get_client_address());
-				fprintf(stderr, "recv() failed. (%d)\n", errno);
-				fprintf(stderr, "%s\n", strerror(errno));
+				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
+				if (errno == 2)
+					send_error_page(404, clients[i]);
 				drop_client(clients[i]);
+				i--;
 			}
 			else
 			{
@@ -178,34 +178,22 @@ void ServerManager::send_response()
 				}
 			}
 		}
-		// client++;
 	}
 	std::cout << "1-end\n";
 }
 
 void ServerManager::send_error_page(int code, Client &client)
 {
-	const char *response = Response(status_info[code]).make_error_page().c_str();
-	send(client.get_socket(), response, strlen(response), 0);
-}
+	std::cout << ">> send error page" << std::endl;
+	Response response(status_info[code]);
+	response.make_error_body();
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Type", "text/html");
 
-const char *ServerManager::find_content_type(const char *path)
-{
-	const char *last_dot = strrchr(path, '.');
-	if (last_dot) {
-		if (strcmp(last_dot, ".css") == 0) return "text/css";
-		if (strcmp(last_dot, ".csv") == 0) return "text/csv";
-		if (strcmp(last_dot, ".html") == 0) return "text/html";
-		if (strcmp(last_dot, ".js") == 0) return "application/javascript";
-		if (strcmp(last_dot, ".json") == 0) return "application/json";
-		if (strcmp(last_dot, ".pdf") == 0) return "application/pdf";
-		if (strcmp(last_dot, ".gif") == 0) return "image/gif";
-		if (strcmp(last_dot, ".jpeg") == 0) return "image/jpeg";
-		if (strcmp(last_dot, ".jpg") == 0) return "image/jpeg";
-		if (strcmp(last_dot, ".png") == 0) return "image/png";
-		if (strcmp(last_dot, ".svg") == 0) return "image/svg+xml";
-	}
-	return "text/plain";
+	std::string result = response.serialize();
+	std::cout << result << std::endl;
+	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
 /*
@@ -214,9 +202,8 @@ const char *ServerManager::find_content_type(const char *path)
 
 void ServerManager::get_method(Client &client)
 {
-	std::cout << "GET /\n";
+	std::cout << "GET method\n";
 	char *path = client.request + 4;
-	std::cout << path << std::endl;
 	char *end_path = strstr(path, " ");
 	if (!end_path)
 	{
@@ -225,6 +212,15 @@ void ServerManager::get_method(Client &client)
 	else
 	{
 		*end_path = 0;
+		std::cout << path << std::endl;
+		if (strlen(path) >= MAX_URI_SIZE)
+		{
+			send_error_page(400, client);
+			return;
+		}
+
+		if (strcmp(path, "/") == 0)
+			path = "/index.html";
 		get_index_page(client, path);
 		// get_content() get_contents_list() get_index_page() 셋 중 하나
 	}
@@ -233,7 +229,7 @@ void ServerManager::get_method(Client &client)
 
 void ServerManager::post_method(Client &client)
 {
-	// post
+	std::cout << "POST method\n";
 	char *path = client.request + 4;
 	char *end_path = strstr(path, " ");
 	if (!end_path)
@@ -256,7 +252,7 @@ void ServerManager::post_method(Client &client)
 
 void ServerManager::delete_method(Client &client)
 {
-
+	std::cout << "DELETE method\n";
 }
 
 void ServerManager::get_contents_list()
@@ -271,48 +267,35 @@ void ServerManager::get_content()
 
 void ServerManager::get_index_page(Client &client, const char *path)
 {
-	if (strcmp(path, "/") == 0) path = "index.html";
-	if (strlen(path) > 100)
-	{
-		send_error_page(400, client);
-		return;
-	}
-	if (strstr(path, ".."))
-	{
-		send_error_page(404, client);
-		return ;
-	}
-	
-	char full_path[128];
-	sprintf(full_path, "www/html/%s", path);
-	FILE *fp = fopen(full_path, "rb");
+	std::string full_path = find_path_in_root(path, client);
+	FILE *fp = fopen(full_path.c_str(), "rb");
+	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
 	if (!fp)
-	{
 		send_error_page(404, client);
-		return ;
-	}
-	fseek(fp, 0L, SEEK_END);
-	size_t length = ftell(fp);
-	rewind(fp);
-	const char *type = find_content_type(full_path);
-
-	Response response(status_info[200]);
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(length));
-	response.append_header("Content-Type", type);
-
-	std::string header = response.make_header();
-	send(client.get_socket(), header.c_str(), header.size(), 0);
-
-	char buffer[BSIZE];
-	int r = fread(buffer, 1, BSIZE, fp);
-	while (r)
+	else
 	{
-		send(client.get_socket(), buffer, r, 0);
-		r = fread(buffer, 1, BSIZE, fp);
+		fseek(fp, 0L, SEEK_END);
+		size_t length = ftell(fp);
+		rewind(fp);
+		const char *type = find_content_type(full_path.c_str());
+
+		Response response(status_info[200]);
+		response.append_header("Connection", "close");
+		response.append_header("Content-Length", std::to_string(length));
+		response.append_header("Content-Type", type);
+
+		std::string header = response.make_header();
+		send(client.get_socket(), header.c_str(), header.size(), 0);
+
+		char buffer[BSIZE];
+		int r = fread(buffer, 1, BSIZE, fp);
+		while (r)
+		{
+			send(client.get_socket(), buffer, r, 0);
+			r = fread(buffer, 1, BSIZE, fp);
+		}
 	}
 	fclose(fp);
-	std::cout << "drop client\n";
 	drop_client(client);
 }
 
@@ -323,4 +306,36 @@ void ServerManager::post_content()
 void ServerManager::delete_content()
 {
 
+}
+
+/*
+** helper methods
+*/
+
+const char *ServerManager::find_content_type(const char *path)
+{
+	const char *last_dot = strrchr(path, '.');
+	if (last_dot) {
+		if (strcmp(last_dot, ".css") == 0) return "text/css";
+		if (strcmp(last_dot, ".csv") == 0) return "text/csv";
+		if (strcmp(last_dot, ".html") == 0) return "text/html";
+		if (strcmp(last_dot, ".js") == 0) return "application/javascript";
+		if (strcmp(last_dot, ".json") == 0) return "application/json";
+		if (strcmp(last_dot, ".pdf") == 0) return "application/pdf";
+		if (strcmp(last_dot, ".gif") == 0) return "image/gif";
+		if (strcmp(last_dot, ".jpeg") == 0) return "image/jpeg";
+		if (strcmp(last_dot, ".jpg") == 0) return "image/jpeg";
+		if (strcmp(last_dot, ".png") == 0) return "image/png";
+		if (strcmp(last_dot, ".svg") == 0) return "image/svg+xml";
+	}
+	return "text/plain";
+}
+
+std::string ServerManager::find_path_in_root(const char *path, Client &client)
+{
+	// server의 location의 root파악해서 가져오기
+	std::string full_path;
+	full_path.append("www/html");
+	full_path.append(path);
+	return full_path;
 }
