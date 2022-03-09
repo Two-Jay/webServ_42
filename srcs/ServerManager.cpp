@@ -131,53 +131,54 @@ void ServerManager::drop_client(Client client)
 
 void ServerManager::send_response()
 {
-	std::vector<Client>::iterator client = clients.begin();
-	while (client != clients.end())
+	// std::vector<Client>::iterator client = clients.begin();
+	// while (client != clients.end())
+	for (int i = 0  ; i < clients.size() ; i++)
 	{
 		std::cout << "sendResponse-1\n";
-		std::cout << "client.socket: " << client->get_socket() << "\n";
-		if (FD_ISSET(client->get_socket(), &reads))
+		std::cout << "client.socket: " << clients[i].get_socket() << "\n";
+		if (FD_ISSET(clients[i].get_socket(), &reads))
 		{
 			std::cout << "sendResponse-2\n";
-			if (MAX_REQUEST_SIZE == client->get_received_size())
+			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
-				send_error_page(400, *client);
+				send_error_page(400, clients[i]);
 				continue;
 			}
 			
 			// 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게
-			std::cout << "client.request" << ": " << (*client).request << " / " << (*client).get_received_size() << "\n";
-			int r = recv((*client).get_socket(), 
-					(*client).request + (*client).get_received_size(), 
-					MAX_REQUEST_SIZE - (*client).get_received_size(), 0);
+			std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
+			int r = recv(clients[i].get_socket(), 
+					clients[i].request + clients[i].get_received_size(), 
+					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			if (r < 1)
 			{
-				printf("Unexpected disconnect from (%d)%s.\n", r, (*client).get_client_address());
+				printf("Unexpected disconnect from (%d)%s.\n", r, clients[i].get_client_address());
 				fprintf(stderr, "recv() failed. (%d)\n", errno);
 				fprintf(stderr, "%s\n", strerror(errno));
-				drop_client(*client);
+				drop_client(clients[i]);
 			}
 			else
 			{
-				(*client).set_received_size((*client).get_received_size() + r);
-				(*client).request[(*client).get_received_size()] = 0;
-				char *found = strstr((*client).request, "\r\n\r\n");
+				clients[i].set_received_size(clients[i].get_received_size() + r);
+				clients[i].request[clients[i].get_received_size()] = 0;
+				char *found = strstr(clients[i].request, "\r\n\r\n");
 				if (found)
 				{
-					if (strncmp("GET /", (*client).request, 5) == 0)
-						get_method(*client);
-					else if (strncmp("POST /", (*client).request, 6) == 0)
-						post_method(*client);
-					else if (strncmp("DELETE /", (*client).request, 8) == 0)
-						delete_method(*client);
+					if (strncmp("GET /", clients[i].request, 5) == 0)
+						get_method(clients[i]);
+					else if (strncmp("POST /", clients[i].request, 6) == 0)
+						post_method(clients[i]);
+					else if (strncmp("DELETE /", clients[i].request, 8) == 0)
+						delete_method(clients[i]);
 					else
-						send_error_page(400, *client);
+						send_error_page(400, clients[i]);
 				}
 			}
 		}
-		client++;
+		// client++;
 	}
 	std::cout << "1-end\n";
 }
