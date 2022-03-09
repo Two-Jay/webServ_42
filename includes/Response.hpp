@@ -18,9 +18,11 @@ public:
 	~Response();
 
 	void append_header(std::string first, std::string second);
+	int get_body_size();
 
+	void make_error_body();
 	std::string make_header();
-	std::string make_error_page();
+	std::string serialize();
 };
 
 #endif
