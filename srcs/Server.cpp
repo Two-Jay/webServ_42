@@ -25,6 +25,7 @@ void Server::create_socket()
 		printf("Creating socket...\n");
 		int socket_listen = socket(bind_addr->ai_family,
 				bind_addr->ai_socktype, bind_addr->ai_protocol);
+		fcntl(socket_listen, F_SETFL, O_NONBLOCK);
 		if (socket_listen < 0) {
 			fprintf(stderr, "socket() failed. (%d)\n", errno);
 			exit(1);

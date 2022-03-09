@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <string>
 #include <vector>
+#include <fcntl.h>
 #include "DataStructs.hpp"
 #include "Location.hpp"
 
