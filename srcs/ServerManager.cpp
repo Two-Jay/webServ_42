@@ -192,7 +192,6 @@ void ServerManager::send_error_page(int code, Client &client)
 	response.append_header("Content-Type", "text/html");
 
 	std::string result = response.serialize();
-	std::cout << result << std::endl;
 	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
@@ -221,8 +220,36 @@ void ServerManager::get_method(Client &client)
 
 		if (strcmp(path, "/") == 0)
 			path = "/index.html";
-		get_index_page(client, path);
-		// get_content() get_contents_list() get_index_page() 셋 중 하나
+		std::string full_path = find_path_in_root(path, client);
+		FILE *fp = fopen(full_path.c_str(), "rb");
+		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
+		if (!fp)
+			send_error_page(404, client);
+		else
+		{
+			fseek(fp, 0L, SEEK_END);
+			size_t length = ftell(fp);
+			rewind(fp);
+			const char *type = find_content_type(full_path.c_str());
+
+			Response response(status_info[200]);
+			response.append_header("Connection", "close");
+			response.append_header("Content-Length", std::to_string(length));
+			response.append_header("Content-Type", type);
+
+			std::string header = response.make_header();
+			send(client.get_socket(), header.c_str(), header.size(), 0);
+
+			char buffer[BSIZE];
+			int r = fread(buffer, 1, BSIZE, fp);
+			while (r)
+			{
+				send(client.get_socket(), buffer, r, 0);
+				r = fread(buffer, 1, BSIZE, fp);
+			}
+		}
+		fclose(fp);
+		drop_client(client);
 	}
 	std::cout << "pass" << std::endl;
 }
@@ -265,38 +292,8 @@ void ServerManager::get_content()
 
 }
 
-void ServerManager::get_index_page(Client &client, const char *path)
+void ServerManager::get_index_page()
 {
-	std::string full_path = find_path_in_root(path, client);
-	FILE *fp = fopen(full_path.c_str(), "rb");
-	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-	if (!fp)
-		send_error_page(404, client);
-	else
-	{
-		fseek(fp, 0L, SEEK_END);
-		size_t length = ftell(fp);
-		rewind(fp);
-		const char *type = find_content_type(full_path.c_str());
-
-		Response response(status_info[200]);
-		response.append_header("Connection", "close");
-		response.append_header("Content-Length", std::to_string(length));
-		response.append_header("Content-Type", type);
-
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-
-		char buffer[BSIZE];
-		int r = fread(buffer, 1, BSIZE, fp);
-		while (r)
-		{
-			send(client.get_socket(), buffer, r, 0);
-			r = fread(buffer, 1, BSIZE, fp);
-		}
-	}
-	fclose(fp);
-	drop_client(client);
 }
 
 void ServerManager::post_content()

@@ -41,7 +41,7 @@ public:
 
 	void get_contents_list();
 	void get_content();
-	void get_index_page(Client &client, const char *path);
+	void get_index_page();
 	void post_content();
 	void delete_content();
 
