@@ -151,6 +151,7 @@ void ServerManager::send_response()
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
+			std::cout << "client.request" << ": " << clients[i].request << " / " << r << "\n";
 			if (r < 1)
 			{
 				printf("Unexpected disconnect from (%d)%s.\n", r, clients[i].get_client_address());
@@ -257,6 +258,7 @@ void ServerManager::get_method(Client &client)
 void ServerManager::post_method(Client &client)
 {
 	std::cout << "POST method\n";
+	std::cout << "request: " << client.request << "\n";
 	char *path = client.request + 4;
 	char *end_path = strstr(path, " ");
 	if (!end_path)
@@ -267,13 +269,16 @@ void ServerManager::post_method(Client &client)
 	{
 		*end_path = 0;
 		char *body = strstr(client.request, "\r\n\r\n") + 4;
+		std::cout << "body: " << body << "\n";
+		// title=test+title%2B&content=description+test%2Btest
+		// 
 		// server 뒤져서 location 뒤져서.. body에 맞는 path와 method가 존재하는지 찾고..
 		// 그 찾은 부분의 root를 저장하는 경로로...... 
 		// printf("recived data(%zu): |%s|\n", strlen(data), data);
-		FILE *fp = fopen("cookies/1", "a");
+		// FILE *fp = fopen("data/" + title, "w");
 		fwrite(body, strlen(body), 1, fp);
 		fclose(fp);
-		post_content();
+		// post_content();
 	}
 }
 
