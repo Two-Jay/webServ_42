@@ -258,26 +258,44 @@ void ServerManager::get_method(Client &client)
 void ServerManager::post_method(Client &client)
 {
 	std::cout << "POST method\n";
-	std::cout << "request: " << client.request << "\n";
+	// std::cout << "request: " << client.request << "\n";
 	char *path = client.request + 4;
 	char *end_path = strstr(path, " ");
+	std::cout << "1\n";
 	if (!end_path)
 	{
 		send_error_page(400, client);
 	}
 	else
 	{
-		*end_path = 0;
-		char *body = strstr(client.request, "\r\n\r\n") + 4;
+		// *end_path = 0;
+		// std::string body = strstr(client.request, "\r\n\r\n") + 4;
+		std::cout << "request: " << client.request << "\n";
+		char * body = strstr(client.request, "\r\n\r\n") + 4;
 		std::cout << "body: " << body << "\n";
+		// replace(body, "+", " ");
+		// char *title, *content;
+		std::string title, content;
+		title = (std::string)(strstr(body, "title=") + 6);
+		std::cout << "title = " << title << "\n";
+		for (int i = 0; i < title.size(); i++) {
+			if (title[i] == '&') {
+				title[i] = '\0';
+			}
+		}
+		content = (std::string)(strstr(body, "content=") + 8);
+		std::cout << "title: " << title << ", content: " << content << "\n";
 		// title=test+title%2B&content=description+test%2Btest
 		// 
 		// server 뒤져서 location 뒤져서.. body에 맞는 path와 method가 존재하는지 찾고..
 		// 그 찾은 부분의 root를 저장하는 경로로...... 
 		// printf("recived data(%zu): |%s|\n", strlen(data), data);
 		// FILE *fp = fopen("data/" + title, "w");
-		fwrite(body, strlen(body), 1, fp);
+		fp = fopen(("www/html/data/" + title).c_str(), "w");
+		fwrite(content.c_str(), content.size(), 1, fp);
 		fclose(fp);
+		// free(title);
+		// free(content);
 		// post_content();
 	}
 }

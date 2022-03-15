@@ -8,7 +8,7 @@ INCS_PATH		= ./includes
 
 SRCS			= $(SRCS_PATH)/main.cpp \
 					$(SRCS_PATH)/Server.cpp $(SRCS_PATH)/Location.cpp \
-					$(SRCS_PATH)/Client.cpp \
+					$(SRCS_PATH)/Client.cpp $(SRCS_PATH)/Utils.cpp \
 					$(SRCS_PATH)/Request.cpp $(SRCS_PATH)/Response.cpp \
 					$(SRCS_PATH)/ServerManager.cpp $(SRCS_PATH)/ConfigParser.cpp
 

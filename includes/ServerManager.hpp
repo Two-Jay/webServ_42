@@ -7,6 +7,7 @@
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Response.hpp"
+#include "Utils.hpp"
 
 class ServerManager
 {
