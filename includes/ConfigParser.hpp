@@ -15,6 +15,10 @@ public:
 	~ConfigParser();
 
 	std::vector<Server> parse();
+	Server parse_server(size_t *i);
+	Location parse_location(size_t *i);
+
+	int print_parse_error();
 };
 
 #endif
