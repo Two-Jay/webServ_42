@@ -320,7 +320,7 @@ std::string ServerManager::get_contents_list()
 	{
 		if ((std::string)ent->d_name == "." || (std::string)ent->d_name == "..")
 			continue;
-		result += "<li><a href=\"" + (std::string)ent->d_name + "\">" 
+		result += "<li><a href=\"/data/" + (std::string)ent->d_name + "\">" 
 			+ (std::string)ent->d_name + "</a></li>";
 	}
 	result += "</ul>";
