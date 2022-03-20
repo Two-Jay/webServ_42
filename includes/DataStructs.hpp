@@ -10,6 +10,7 @@ enum MethodType
 	GET,
 	POST,
 	DELETE,
+	INVALID,
 };
 
 #endif

@@ -18,6 +18,8 @@ public:
 public:
 	Location();
 	~Location();
+
+	static MethodType s_to_methodtype(std::string str);
 };
 
 #endif

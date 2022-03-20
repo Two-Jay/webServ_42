@@ -3,7 +3,6 @@
 
 #include <unistd.h>
 #include <sys/time.h>
-#include <iostream>
 #include <dirent.h>
 #include "Server.hpp"
 #include "Client.hpp"

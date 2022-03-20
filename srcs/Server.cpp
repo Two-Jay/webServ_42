@@ -46,3 +46,20 @@ void Server::create_socket()
 		printf("added!\n");
 	}
 }
+
+MethodType Server::s_to_methodtype(std::string str)
+{
+	if (str == "GET")
+	{
+		return GET;
+	}
+	else if (str == "POST")
+	{
+		return POST;
+	}
+	else if (str == "DELETE")
+	{
+		return DELETE;
+	}
+	return INVALID;
+}

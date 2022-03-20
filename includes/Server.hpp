@@ -12,7 +12,7 @@
 
 class Server
 {
-private:
+public:
 	int client_body_limit;
 	bool autoindex;
 	std::string root;
@@ -31,6 +31,7 @@ public:
 	~Server();
 
 	void create_socket();
+	static MethodType s_to_methodtype(std::string str);
 };
 
 #endif
