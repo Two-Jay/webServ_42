@@ -318,11 +318,12 @@ std::string ServerManager::get_contents_list()
 	std::string result = "<ul>";
 	while ((ent = readdir(dir)) != NULL)
 	{
+		if ((std::string)ent->d_name == "." || (std::string)ent->d_name == "..")
+			continue;
 		result += "<li><a href=\"" + (std::string)ent->d_name + "\">" 
 			+ (std::string)ent->d_name + "</a></li>";
 	}
 	result += "</ul>";
-	std::cout << "dir: " << result << "\n";
 	return result;
 }
 
