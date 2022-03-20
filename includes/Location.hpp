@@ -8,7 +8,7 @@
 
 class Location
 {
-private:
+public:
 	std::string path;
 	std::string root;
 	std::vector<std::string> index;

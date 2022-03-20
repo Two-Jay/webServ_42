@@ -306,6 +306,14 @@ void ServerManager::post_method(Client &client)
 void ServerManager::delete_method(Client &client)
 {
 	std::cout << "DELETE method\n";
+	char *path = client.request + 4;
+	char *end_path = strstr(path, " ");
+	std::cout << "1\n";
+	if (!end_path)
+	{
+		send_error_page(400, client);
+	}
+	
 }
 
 std::string ServerManager::get_contents_list()
