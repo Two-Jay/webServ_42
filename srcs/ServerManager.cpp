@@ -220,7 +220,10 @@ void ServerManager::get_method(Client &client)
 		}
 
 		if (strcmp(path, "/") == 0) {
-			// path = "/index.html";
+			// index page 중에 하나
+			path = "/index.html";
+		}
+		if (strcmp(path, "/data") == 0) {
 			get_index_page(client);
 			return ;
 		}
