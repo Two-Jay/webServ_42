@@ -345,7 +345,6 @@ void ServerManager::get_index_page(Client &client)
 		"<h1>42 webserv</h1>";
 	result += get_contents_list();
 	result += "</body></html>";
-	std::cout << "index: " << result << "\n";
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(result.length()));
