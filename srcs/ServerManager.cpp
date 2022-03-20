@@ -220,7 +220,10 @@ void ServerManager::get_method(Client &client)
 		}
 
 		if (strcmp(path, "/") == 0) {
-			// path = "/index.html";
+			// index page 중에 하나
+			path = "/index.html";
+		}
+		if (strcmp(path, "/data") == 0) {
 			get_index_page(client);
 			return ;
 		}
@@ -353,7 +356,6 @@ void ServerManager::get_index_page(Client &client)
 		"<h1>42 webserv</h1>";
 	result += get_contents_list();
 	result += "</body></html>";
-	std::cout << "index: " << result << "\n";
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(result.length()));
