@@ -219,8 +219,12 @@ void ServerManager::get_method(Client &client)
 			return;
 		}
 
-		if (strcmp(path, "/") == 0)
-			path = "/index.html";
+		if (strcmp(path, "/") == 0) {
+			// path = "/index.html";
+			get_index_page(client);
+			return ;
+		}
+		char *dir_list;
 		std::string full_path = find_path_in_root(path, client);
 		FILE *fp = fopen(full_path.c_str(), "rb");
 		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
@@ -277,7 +281,6 @@ void ServerManager::post_method(Client &client)
 		// char *title, *content;
 		std::string title, content;
 		title = (std::string)(strstr(body, "title=") + 6);
-		std::cout << "title = " << title << "\n";
 		for (int i = 0; i < title.size(); i++) {
 			if (title[i] == '&') {
 				title[i] = '\0';
@@ -313,9 +316,23 @@ void ServerManager::delete_method(Client &client)
 	
 }
 
-void ServerManager::get_contents_list()
+std::string ServerManager::get_contents_list()
 {
+	std::string path = "www/html/data/";
+	DIR *dir;
+	struct dirent *ent;
+	dir = opendir(path.c_str());
 
+	std::string result = "<ul>";
+	while ((ent = readdir(dir)) != NULL)
+	{
+		if ((std::string)ent->d_name == "." || (std::string)ent->d_name == "..")
+			continue;
+		result += "<li><a href=\"/data/" + (std::string)ent->d_name + "\">" 
+			+ (std::string)ent->d_name + "</a></li>";
+	}
+	result += "</ul>";
+	return result;
 }
 
 void ServerManager::get_content()
@@ -323,8 +340,28 @@ void ServerManager::get_content()
 
 }
 
-void ServerManager::get_index_page()
+void ServerManager::get_index_page(Client &client)
 {
+	std::string list;
+	std::string result = "<!DOCTYPE html>"
+"<html>"
+	"<head>"
+		"<meta charset=\"UTF-8\" />"
+		"<title>webserv</title>"
+	"</head>"
+	"<body>"
+		"<h1>42 webserv</h1>";
+	result += get_contents_list();
+	result += "</body></html>";
+	std::cout << "index: " << result << "\n";
+	Response response(status_info[200]);
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(result.length()));
+	response.append_header("Content-Type", "text/html");
+	std::string header = response.make_header();
+	send(client.get_socket(), header.c_str(), header.size(), 0);
+	send(client.get_socket(), result.c_str(), result.length(), 0);
+	drop_client(client);
 }
 
 void ServerManager::post_content()

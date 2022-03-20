@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <iostream>
+#include <dirent.h>
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Response.hpp"
@@ -40,9 +41,9 @@ public:
 	void post_method(Client &client);
 	void delete_method(Client &client);
 
-	void get_contents_list();
+	std::string get_contents_list();
 	void get_content();
-	void get_index_page();
+	void get_index_page(Client &client);
 	void post_content();
 	void delete_content();
 
