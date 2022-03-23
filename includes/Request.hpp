@@ -2,6 +2,7 @@
 #define REQUEST_HPP
 
 #include <string>
+#include <map>
 #include "DataStructs.hpp"
 
 class Request
@@ -19,6 +20,7 @@ private:
 
 public:
 	std::map<std::string, std::string> headers;
+	std::string body;
 	Request();
 	~Request();
 
