@@ -9,7 +9,9 @@ int main(int argc, char **argv)
 	std::cout << argv[0] << std::endl;
 
 	ConfigParser configParser(argv[1]);
-	ServerManager manager(configParser.parse());
+	std::vector<Server> *servers = configParser.parse();
+	ServerManager manager(*servers);
+	manager.print_servers_info();
 
 	// std::vector<Server> vec;
 	// Server server;
@@ -33,5 +35,6 @@ int main(int argc, char **argv)
 	// printf("\nClosing socket...\n");
 	// manager.close_servers();
 	// printf("Finished.\n");
+	delete servers;
 	return 0;
 }

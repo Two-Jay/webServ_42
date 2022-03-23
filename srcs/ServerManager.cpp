@@ -72,6 +72,20 @@ void ServerManager::close_servers()
 	}
 }
 
+void ServerManager::print_servers_info()
+{
+	std::cout << std::endl;
+	std::cout << "=================================================" << std::endl;
+	std::cout << "            Total Server Informations            " << std::endl;
+	std::cout << "=================================================" << std::endl;
+	for (int i = 0; i < servers.size(); i++)
+	{
+		servers[i].print_server_info();
+	}
+	std::cout << "=================================================" << std::endl;
+	std::cout << std::endl;
+}
+
 /*
 ** Client methods
 */
@@ -163,6 +177,7 @@ void ServerManager::send_response()
 			}
 			else
 			{
+				// request parsing 해야함
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 				char *found = strstr(clients[i].request, "\r\n\r\n");

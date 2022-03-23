@@ -2,6 +2,9 @@
 
 Server::Server(/* args */)
 {
+	autoindex = true;
+	host = "";
+	redirect_status = -1;
 }
 
 Server::~Server()
@@ -45,6 +48,32 @@ void Server::create_socket()
 		this->listen_socket.push_back(socket_listen);
 		printf("added!\n");
 	}
+}
+
+void Server::print_server_info()
+{
+	std::cout << "------------------ Server Info ------------------" << std::endl;
+	std::cout << "> server_name: " << server_name << std::endl;
+	std::cout << "> host: " << host << std::endl;
+	std::cout << "> port: " << port << std::endl;
+	if (redirect_status == -1)
+	{
+		std::cout << "> root: " << root << std::endl;
+		std::cout << "> client_body_limit: " << client_body_limit << std::endl;
+		std::cout << "> autoindex: " << (autoindex ? "on" : "off") << std::endl;
+		std::cout << "> index: " << index << std::endl;
+		std::cout << "> allow_methods: " << allow_methods << std::endl;
+		for (int i = 0; i < locations.size(); i++)
+		{
+			locations[i].print_location_info();
+		}
+	}
+	else
+	{
+		std::cout << "> redirect_status: " << redirect_status << std::endl;
+		std::cout << "> redirect_url: " << redirect_url << std::endl;
+	}
+	std::cout << "-------------------------------------------------" << std::endl;
 }
 
 MethodType Server::s_to_methodtype(std::string str)

@@ -28,11 +28,13 @@ public:
 	~ServerManager();
 
 	void create_servers();
-	void wait_on_clients();
 	void accept_sockets();
 	void close_servers();
+	void print_servers_info();
 
+	void wait_on_clients();
 	void drop_client(Client client);
+
 	void send_response();
 	void send_error_page(int code, Client &Client);
 
