@@ -2,6 +2,7 @@
 #define REQUEST_HPP
 
 #include <string>
+#include <map>
 #include "DataStructs.hpp"
 
 class Request

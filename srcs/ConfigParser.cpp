@@ -16,6 +16,11 @@ ConfigParser::ConfigParser(const char* filename)
 		}
 		fs.close();
 	}
+	else
+	{
+		fprintf(stderr, "[ERROR] file open failed. (%d)%s\n", errno, strerror(errno));
+		exit(1);
+	}
 }
 
 ConfigParser::~ConfigParser()
@@ -26,7 +31,7 @@ std::vector<Server> *ConfigParser::parse()
 {
 	std::vector<Server> *result = new std::vector<Server>();
 
-	std::cout << "============= Config Parsing Start ==============" << std::endl;
+	std::cout << "> config file parsing start" << std::endl;
 	size_t pre = 0;
 	size_t cur = content.find_first_not_of(" \t\n", pre);
 	while (cur != std::string::npos)
@@ -41,7 +46,7 @@ std::vector<Server> *ConfigParser::parse()
 		Server server = parse_server(&cur);
 		result->push_back(server);
 	}
-	std::cout << "============= Config Parsing Finish =============" << std::endl;
+	std::cout << "> config file parsing finish" << std::endl;
 	return result;
 }
 
