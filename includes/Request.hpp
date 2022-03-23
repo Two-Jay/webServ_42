@@ -7,17 +7,23 @@
 class Request
 {
 private:
-	bool chunked;
-	int content_length;
-	std::string content_type;
-	std::string host;
-	std::string body;
-	MethodType method;
+	// bool chunked;
+	// int content_length;
+	// std::string content_type;
+	// std::string host;
+	// std::string body;
+	// std::string path;
+	// MethodType method;
 	// last time -> manager에
+	
 
 public:
+	std::map<std::string, std::string> headers;
 	Request();
 	~Request();
+
+	std::string getPath(); // url after program name and a slash
+	std::string getQuery(); // query string : after ?
 };
 
 #endif
