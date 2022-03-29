@@ -51,13 +51,13 @@ void ServerManager::accept_sockets()
 				clients.push_back(Client());
 				Client &client = clients.back();
 				client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
-				std::cout << "client->socket: " << client.get_socket() << "\n";
+				std::cout << "client->socket: " << client.get_socket() << std::endl;
 				if (client.get_socket() < 0)
 				{
 					fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
 					exit(1);
 				}
-				printf("New Connection from %s.\n", client.get_client_address());
+				std::cout << "> New Connection from [" << client.get_client_address() << "]." << std::endl;
 			}
 		}
 	}
@@ -168,7 +168,7 @@ void ServerManager::treat_request()
 			std::cout << "client.request" << ": " << clients[i].request << " / " << r << "\n";
 			if (r < 1)
 			{
-				printf("Unexpected disconnect from (%d)%s.\n", r, clients[i].get_client_address());
+				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]." << std::endl;
 				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
 				if (errno == 2)
 					send_error_page(404, clients[i]);
