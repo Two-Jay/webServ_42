@@ -35,7 +35,7 @@ public:
 	void wait_on_clients();
 	void drop_client(Client client);
 
-	void send_response();
+	void treat_request();
 	void send_error_page(int code, Client &Client);
 
 	void get_method(Client &client);

@@ -144,7 +144,7 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-void ServerManager::send_response()
+void ServerManager::treat_request()
 {
 	for (int i = 0  ; i < clients.size() ; i++)
 	{
