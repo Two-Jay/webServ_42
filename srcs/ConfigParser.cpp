@@ -54,7 +54,6 @@ Server ConfigParser::parse_server(size_t *i)
 {
 	Server result;
 
-	std::cout << "parse_server.. starts with (" << *i << ")" << std::endl;
 	size_t pre = content.find_first_not_of(" \t\n", *i);
 	if (pre == std::string::npos || content[pre] != '{')
 		exit(print_parse_error());
@@ -91,7 +90,6 @@ Server ConfigParser::parse_server(size_t *i)
 			}
 		}
 	}
-	std::cout << "parse_server.. finish with (" << *i << ")" << std::endl;
 	return result;
 }
 
@@ -99,7 +97,6 @@ Location ConfigParser::parse_location(size_t *i)
 {
 	Location result;
 
-	std::cout << "parse_location.. starts with (" << *i << ")" << std::endl;
 	size_t pre = content.find_first_not_of(" \t\n", *i);
 	size_t cur = content.find_first_of(" \t\n", pre);
 	result.path = content.substr(pre, cur - pre);
@@ -135,7 +132,6 @@ Location ConfigParser::parse_location(size_t *i)
 			}
 		}
 	}
-	std::cout << "parse_location.. finish with (" << *i << ")" << std::endl;
 	return result;
 }
 

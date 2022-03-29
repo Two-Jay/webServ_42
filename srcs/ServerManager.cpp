@@ -180,6 +180,7 @@ void ServerManager::treat_request()
 				// request parsing 해야함
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
+				// received_size - [HEADER SIZE] == content_length ?
 				char *found = strstr(clients[i].request, "\r\n\r\n");
 				if (found)
 				{
@@ -331,7 +332,7 @@ void ServerManager::delete_method(Client &client)
 	{
 		send_error_page(400, client);
 	}
-	
+	//std::remove("");
 }
 
 std::string ServerManager::get_contents_list()

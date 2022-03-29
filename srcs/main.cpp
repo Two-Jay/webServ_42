@@ -1,17 +1,25 @@
 #include "../includes/ServerManager.hpp"
 #include "../includes/ConfigParser.hpp"
 
+void print_webserv_welcome()
+{
+	std::cout << "=================================================" << std::endl;
+	std::cout << "                 Webserv Start!                  " << std::endl;
+	std::cout << "=================================================" << std::endl;
+}
+
 int main(int argc, char **argv)
 {
-	if (argc != 2)
+	if (argc > 2)
 		return 0;
 
-	std::cout << argv[0] << std::endl;
+	print_webserv_welcome();
 
-	ConfigParser configParser(argv[1]);
+	std::string config = (argc == 1) ? "./config/default.config" : argv[1];
+	ConfigParser configParser(config.c_str());
 	std::vector<Server> *servers = configParser.parse();
 	ServerManager manager(*servers);
-	manager.print_servers_info();
+	// manager.print_servers_info();
 
 	// std::vector<Server> vec;
 	// Server server;

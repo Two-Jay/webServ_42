@@ -2,6 +2,7 @@
 
 Server::Server(/* args */)
 {
+	client_body_limit = 1024;
 	autoindex = true;
 	host = "";
 	redirect_status = -1;

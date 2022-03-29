@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <dirent.h>
+#include <cstdio>
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Response.hpp"
