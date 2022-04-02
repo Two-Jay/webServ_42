@@ -43,11 +43,12 @@ public:
 	void post_method(Client &client);
 	void delete_method(Client &client);
 
-	std::string get_contents_list();
 	void get_content();
 	void get_index_page(Client &client);
 	void post_content();
 	void delete_content();
+	std::string get_contents_list();
+	std::string make_autoindex_page(Client &client);
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(const char *path, Client &client);
