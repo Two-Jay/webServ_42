@@ -31,3 +31,13 @@ void Request::parsing(std::string request)
 	}
 	std::cout << headers;
 }
+
+std::string Request::get_path()
+{
+	return path;
+}
+
+std::string Request::get_query()
+{
+
+}

@@ -5,11 +5,9 @@
 #include <sys/time.h>
 #include <dirent.h>
 #include <cstdio>
-#include "Server.hpp"
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
-#include "Utils.hpp"
 
 class ServerManager
 {
@@ -40,9 +38,9 @@ public:
 	void treat_request();
 	void send_error_page(int code, Client &Client);
 
-	void get_method(Client &client);
-	void post_method(Client &client);
-	void delete_method(Client &client);
+	void get_method(Client &client, std::string path);
+	void post_method(Client &client, Request &request);
+	void delete_method(Client &client, std::string path);
 
 	void get_content();
 	void get_index_page(Client &client);
@@ -52,7 +50,7 @@ public:
 	std::string make_autoindex_page(Client &client);
 
 	const char *find_content_type(const char *path);
-	std::string find_path_in_root(const char *path, Client &client);
+	std::string find_path_in_root(std::string path, Client &client);
 };
 
 #endif
