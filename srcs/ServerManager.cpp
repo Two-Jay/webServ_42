@@ -161,7 +161,7 @@ void ServerManager::treat_request()
 			
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
-			std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
+			// std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
@@ -177,6 +177,8 @@ void ServerManager::treat_request()
 			}
 			else
 			{
+				Request req = Request();
+				req.parsing(clients[i].request);
 				// request parsing 해야함
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
