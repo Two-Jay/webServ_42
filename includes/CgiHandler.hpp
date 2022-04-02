@@ -10,6 +10,7 @@ class CgiHandler {
 	std::map<std::string, std::string> env;
 	public:
 	CgiHandler(Request &request);
+	char** set_env();
 };
 
 #endif

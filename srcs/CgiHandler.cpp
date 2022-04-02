@@ -26,7 +26,7 @@ char** CgiHandler::set_env() {
 		return NULL;
 	
 	int i = 0;
-	for(std::map<std::string, std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it) {
+	for(std::map<std::string, std::string>::iterator it = env.begin(); it != env.end(); ++it) {
 		envp[i] = strdup((it->first + "=" + it->second).c_str());
 		++i;
 	}
