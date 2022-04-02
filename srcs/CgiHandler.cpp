@@ -19,3 +19,17 @@ CgiHandler::CgiHandler(Request &request) {
 	this->env["CONTENT_TYPE"] = request.headers["Content-Type"];
 	this->env["CONTENT_LENGTH"] = request.headers["Content-Length"];
 }
+
+char** CgiHandler::set_env() {
+	char **envp = new char*[sizeof(char*) * (env.size() + 1)];
+	if (!envp)
+		return NULL;
+	
+	int i = 0;
+	for(std::map<std::string, std::string>::iterator it = tmp.begin(); it != tmp.end(); ++it) {
+		envp[i] = strdup((it->first + "=" + it->second).c_str());
+		++i;
+	}
+	envp[i] = NULL;
+	return envp;
+}
