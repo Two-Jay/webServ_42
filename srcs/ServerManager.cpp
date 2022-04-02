@@ -437,3 +437,26 @@ std::string ServerManager::find_path_in_root(const char *path, Client &client)
 	full_path.append(path);
 	return full_path;
 }
+
+std::string ServerManager::make_autoindex_page(Client &client)
+{
+	std::string addr;
+	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
+		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
+	result += client.get_client_address();
+	result += ":";
+	result += client.get_client_port();
+
+	DIR *dir = NULL;
+	// if ((dir = opendir(resource_path.c_str())) == NULL)
+	// 	return NULL;
+
+	struct dirent *file = NULL;
+	while ((file = readdir(dir)) != NULL)
+		result += "<a href=\"" + addr + file->d_name + "\">" + file->d_name + "</a><br>\n";
+	closedir(dir);
+
+	result += "</body></html>";
+
+	return (result);
+}
