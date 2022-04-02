@@ -177,7 +177,7 @@ void ServerManager::treat_request()
 			}
 			else
 			{
-				Request req = Request();
+				Request req = Request(clients[i].get_socket());
 				req.parsing(clients[i].request);
 				// request parsing 해야함
 				clients[i].set_received_size(clients[i].get_received_size() + r);

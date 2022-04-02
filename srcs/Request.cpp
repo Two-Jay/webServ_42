@@ -1,11 +1,21 @@
 #include "../includes/Request.hpp"
 
-Request::Request(/* args */)
+Request::Request(int client_fd)
 {
+	client_fd = client_fd;
 }
 
 Request::~Request()
 {
+}
+
+int Request::get_client_fd() {
+	return client_fd;
+}
+
+std::string Request::get_port() {
+	int i = headers["Host"].find_first_of(":", 0);
+	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
 void Request::parsing(std::string request)

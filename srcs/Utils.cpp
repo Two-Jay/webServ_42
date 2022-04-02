@@ -44,3 +44,13 @@ std::vector<std::string> split(std::string input, char delimiter)
  
     return answer;
 }
+
+std::string get_ip(int client_fd) {
+	struct sockaddr_in	client_addr;
+	socklen_t			addr_len = sizeof(struct sockaddr_in);
+	char				ip[16];
+
+	getsockname(client_fd, (struct sockaddr *)&client_addr, &addr_len);
+	strncpy(ip, inet_ntoa(client_addr.sin_addr), 16);
+	return (ip);
+}
