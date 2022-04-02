@@ -49,5 +49,8 @@ std::string Request::get_path()
 
 std::string Request::get_query()
 {
-
+	int i = path.find_first_of("?", 0);
+	if (i == std::string::npos)
+		return "";
+	return path.substr(i, path.size() - i);
 }
