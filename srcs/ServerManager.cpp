@@ -218,15 +218,21 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
-	if (path == "/") {
+	if (path == "/")
+	{
 		// index page 중에 하나
 		path = "/index.html";
 
 		// or autoindex
 	}
-	if (path == "/data") {
+	if (path == "/data")
+	{
 		get_index_page(client);
 		return ;
+	}
+	if (path == "/board")
+	{
+		path = "/board.html";
 	}
 
 	char *dir_list;
@@ -391,9 +397,7 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
 	// server의 location의 root파악해서 가져오기
 	std::string full_path;
-
-	//client.get_root();
-	full_path.append("www/html");
+	full_path.append(client.get_root_path(path));
 	full_path.append(path);
 	return full_path;
 }
