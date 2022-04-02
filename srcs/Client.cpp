@@ -1,7 +1,8 @@
 #include "../includes/Client.hpp"
 
-Client::Client()
+Client::Client(Server *server)
 {
+	this->server = server;
 	address_length = sizeof(struct sockaddr_storage);
 	received_size = 0;
 	memset(request, 0, MAX_REQUEST_SIZE + 1);

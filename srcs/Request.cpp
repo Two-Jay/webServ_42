@@ -22,9 +22,9 @@ void Request::parsing(std::string request)
 {
 	std::cout << "parsing: " << request << "\n";
 	int i = request.find_first_of(" ", 0);
-	headers["Method"] = request.substr(0, i);
+	method = request.substr(0, i);
 	int j = request.find_first_of(" ", i + 1);
-	headers["Path"] = request.substr(i + 1, j - i - 1);
+	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())

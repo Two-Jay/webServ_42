@@ -1,10 +1,6 @@
 #ifndef LOCATION_HPP
 #define LOCATION_HPP
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
 #include "DataStructs.hpp"
 #include "Utils.hpp"
 
