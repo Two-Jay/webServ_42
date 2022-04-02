@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <signal.h>
+#include <string>
 
 #define MAX_REQUEST_SIZE 2047
 #define BSIZE 1024
