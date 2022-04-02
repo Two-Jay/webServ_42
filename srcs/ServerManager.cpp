@@ -177,18 +177,14 @@ void ServerManager::treat_request()
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 				// body size 검사 해야함
-				char *found = strstr(clients[i].request, "\r\n\r\n");
-				if (found)
-				{
-					if (req.method == "SELECT")
-						get_method(clients[i], req.path);
-					else if (req.method == "POST")
-						post_method(clients[i], req);
-					else if (req.method == "DELETE")
-						delete_method(clients[i], req.path);
-					else
-						send_error_page(400, clients[i]);
-				}
+				if (req.method == "GET")
+					get_method(clients[i], req.path);
+				else if (req.method == "POST")
+					post_method(clients[i], req);
+				else if (req.method == "DELETE")
+					delete_method(clients[i], req.path);
+				else
+					send_error_page(400, clients[i]);
 			}
 		}
 	}

@@ -10,7 +10,7 @@ Request::~Request()
 
 void Request::parsing(std::string request)
 {
-	std::cout << "parsing: " << request << "\n";
+	std::cout << "> request parsing" << std::endl;
 	int i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	int j = request.find_first_of(" ", i + 1);
