@@ -6,7 +6,7 @@ CgiHandler::CgiHandler(Request &request) {
 	this->env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	this->env["SERVER_PORT"] = request.get_port();
-	this->env["REQUEST_METHOD"] = request.headers["Method"];
+	this->env["REQUEST_METHOD"] = request.method;
 	this->env["PATH_INFO"] = request.get_path();
 	this->env["PATH_TRANSLATED"] = request.get_path();
 	this->env["SCRIPT_NAME"] = request.get_path();
