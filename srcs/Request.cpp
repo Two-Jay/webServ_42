@@ -44,7 +44,10 @@ void Request::parsing(std::string request)
 
 std::string Request::get_path()
 {
-	return path;
+	int i = path.find_first_of("?", 0);
+	if (i == std::string::npos)
+		return path;
+	return path.substr(0, i - 1);
 }
 
 std::string Request::get_query()
