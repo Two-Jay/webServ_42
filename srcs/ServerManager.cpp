@@ -48,7 +48,7 @@ void ServerManager::accept_sockets()
 			server = servers[i].listen_socket[j];
 			if (FD_ISSET(server, &reads))
 			{
-				clients.push_back(Client());
+				clients.push_back(Client(&servers[i]));
 				Client &client = clients.back();
 				client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 				std::cout << "client->socket: " << client.get_socket() << std::endl;

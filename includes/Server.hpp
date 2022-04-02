@@ -5,7 +5,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include "DataStructs.hpp"
 #include "Location.hpp"
 
 class Server
