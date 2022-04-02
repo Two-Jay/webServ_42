@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	ConfigParser configParser(config.c_str());
 	std::vector<Server> *servers = configParser.parse();
 	ServerManager manager(*servers);
-	// manager.print_servers_info();
+	manager.print_servers_info();
 
 	// std::vector<Server> vec;
 	// Server server;
@@ -29,20 +29,20 @@ int main(int argc, char **argv)
 	// vec.push_back(server);
 	// ServerManager manager(vec);
 
-    // //서버 소켓 생성
-	// manager.create_servers();
+    //서버 소켓 생성
+	manager.create_servers();
 
-	// while (1)
-	// {
-    //     // 서버에 들어온 요청 확인
-	// 	manager.wait_on_clients();
-	// 	manager.accept_sockets();
-	// 	std::cout << "1-start\n";
-	// 	manager.send_response();
-	// }
-	// printf("\nClosing socket...\n");
-	// manager.close_servers();
-	// printf("Finished.\n");
+	while (1)
+	{
+        // 서버에 들어온 요청 확인
+		manager.wait_on_clients();
+		manager.accept_sockets();
+		std::cout << "1-start\n";
+		manager.treat_request();
+	}
+	printf("\nClosing socket...\n");
+	manager.close_servers();
+	printf("Finished.\n");
 	delete servers;
 	return 0;
 }
