@@ -1,4 +1,4 @@
-#include "CgiHandler.hpp"
+#include "../includes/CgiHandler.hpp"
 
 CgiHandler::CgiHandler(Request &request) {
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
