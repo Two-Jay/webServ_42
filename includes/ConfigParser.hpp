@@ -17,7 +17,7 @@ public:
 	ConfigParser(const char* filename);
 	~ConfigParser();
 
-	std::vector<Server> parse();
+	std::vector<Server> *parse();
 	Server parse_server(size_t *i);
 	Location parse_location(size_t *i);
 

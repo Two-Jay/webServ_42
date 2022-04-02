@@ -51,13 +51,13 @@ void ServerManager::accept_sockets()
 				clients.push_back(Client());
 				Client &client = clients.back();
 				client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
-				std::cout << "client->socket: " << client.get_socket() << "\n";
+				std::cout << "client->socket: " << client.get_socket() << std::endl;
 				if (client.get_socket() < 0)
 				{
 					fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
 					exit(1);
 				}
-				printf("New Connection from %s.\n", client.get_client_address());
+				std::cout << "> New Connection from [" << client.get_client_address() << "]." << std::endl;
 			}
 		}
 	}
@@ -70,6 +70,20 @@ void ServerManager::close_servers()
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
 			close(servers[i].listen_socket[j]);
 	}
+}
+
+void ServerManager::print_servers_info()
+{
+	std::cout << std::endl;
+	std::cout << "=================================================" << std::endl;
+	std::cout << "            Total Server Informations            " << std::endl;
+	std::cout << "=================================================" << std::endl;
+	for (int i = 0; i < servers.size(); i++)
+	{
+		servers[i].print_server_info();
+	}
+	std::cout << "=================================================" << std::endl;
+	std::cout << std::endl;
 }
 
 /*
@@ -130,7 +144,7 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-void ServerManager::send_response()
+void ServerManager::treat_request()
 {
 	for (int i = 0  ; i < clients.size() ; i++)
 	{
@@ -147,14 +161,14 @@ void ServerManager::send_response()
 			
 			// 최대 사이즈가 MAX 사이즈를 넘지 않게 받은 데이터 크기 체크
 			// 이미 받은 데이터 다음위치를 체크해서 받음
-			std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
+			// std::cout << "client.request" << ": " << clients[i].request << " / " << clients[i].get_received_size() << "\n";
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			std::cout << "client.request" << ": " << clients[i].request << " / " << r << "\n";
 			if (r < 1)
 			{
-				printf("Unexpected disconnect from (%d)%s.\n", r, clients[i].get_client_address());
+				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]." << std::endl;
 				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
 				if (errno == 2)
 					send_error_page(404, clients[i]);
@@ -163,8 +177,12 @@ void ServerManager::send_response()
 			}
 			else
 			{
+				Request req = Request();
+				req.parsing(clients[i].request);
+				// request parsing 해야함
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
+				// received_size - [HEADER SIZE] == content_length ?
 				char *found = strstr(clients[i].request, "\r\n\r\n");
 				if (found)
 				{
@@ -222,6 +240,8 @@ void ServerManager::get_method(Client &client)
 		if (strcmp(path, "/") == 0) {
 			// index page 중에 하나
 			path = "/index.html";
+
+			// or autoindex
 		}
 		if (strcmp(path, "/data") == 0) {
 			get_index_page(client);
@@ -303,6 +323,12 @@ void ServerManager::post_method(Client &client)
 		// free(title);
 		// free(content);
 		// post_content();
+		Response response(status_info[201]);
+		response.append_header("Connection", "close");
+
+		std::string header = response.make_header();
+		send(client.get_socket(), header.c_str(), header.size(), 0);
+		drop_client(client);
 	}
 }
 
@@ -316,7 +342,16 @@ void ServerManager::delete_method(Client &client)
 	{
 		send_error_page(400, client);
 	}
-	
+	else
+	{
+		std::cout << path << std::endl;
+		std::remove("");
+		Response response(status_info[201]);
+		response.append_header("Connection", "close");
+
+		std::string header = response.make_header();
+		send(client.get_socket(), header.c_str(), header.size(), 0);
+	}
 }
 
 std::string ServerManager::get_contents_list()
@@ -346,14 +381,10 @@ void ServerManager::get_content()
 void ServerManager::get_index_page(Client &client)
 {
 	std::string list;
-	std::string result = "<!DOCTYPE html>"
-"<html>"
-	"<head>"
-		"<meta charset=\"UTF-8\" />"
-		"<title>webserv</title>"
-	"</head>"
-	"<body>"
-		"<h1>42 webserv</h1>";
+	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
+		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
+	result += client.get_client_address();
+	result += "</h2><hr>";
 	result += get_contents_list();
 	result += "</body></html>";
 	Response response(status_info[200]);

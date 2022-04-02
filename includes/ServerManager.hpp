@@ -4,8 +4,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <dirent.h>
+#include <cstdio>
 #include "Server.hpp"
 #include "Client.hpp"
+#include "Request.hpp"
 #include "Response.hpp"
 #include "Utils.hpp"
 
@@ -28,12 +30,14 @@ public:
 	~ServerManager();
 
 	void create_servers();
-	void wait_on_clients();
 	void accept_sockets();
 	void close_servers();
+	void print_servers_info();
 
+	void wait_on_clients();
 	void drop_client(Client client);
-	void send_response();
+
+	void treat_request();
 	void send_error_page(int code, Client &Client);
 
 	void get_method(Client &client);
