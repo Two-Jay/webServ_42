@@ -3,6 +3,8 @@
 
 #include <string>
 #include <map>
+#include <iostream>
+#include "Utils.hpp"
 #include "DataStructs.hpp"
 
 class Request
@@ -24,6 +26,7 @@ public:
 	Request();
 	~Request();
 
+	void parsing(std::string request);
 	std::string getPath(); // url after program name and a slash
 	std::string getQuery(); // query string : after ?
 };
