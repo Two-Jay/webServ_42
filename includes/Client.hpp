@@ -25,7 +25,7 @@ public:
 	void set_socket(int value);
 	void set_received_size(int size);
 
-	std::string get_root_path();
+	std::string get_root_path(std::string path);
 	
 	const char *get_client_address();
 	const char *get_client_port();
