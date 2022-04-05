@@ -171,7 +171,7 @@ void ServerManager::treat_request()
 			}
 			else
 			{
-				Request req = Request();
+				Request req = Request(clients[i].get_socket());
 				req.parsing(clients[i].request);
 				
 				clients[i].set_received_size(clients[i].get_received_size() + r);

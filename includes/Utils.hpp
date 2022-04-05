@@ -7,10 +7,14 @@
 #include <sstream>
 #include <dirent.h>
 #include <map>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 int replace(std::string &original, std::string word1, std::string word2);
 std::string dir_listing();
 std::vector<std::string> split(std::string input, char delimiter);
+std::string get_ip(int client_fd);
 
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)
