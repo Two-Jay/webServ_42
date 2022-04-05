@@ -224,7 +224,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		std::string root = client.get_root_path(path);
 		for (int i = 0; i < client.server->index.size(); i++)
 		{
-			FILE *fp = fopen((root + client.server->index[i]).c_str(), "rb");
+			FILE *fp = fopen((root + "/" + client.server->index[i]).c_str(), "rb");
 			if (fp)
 			{
 				fclose(fp);
@@ -410,7 +410,6 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 
 void ServerManager::get_autoindex_page(Client &client, std::string path)
 {
-	std::cout << "get autoindex page" << std::endl;
 	std::string addr;
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
@@ -440,5 +439,4 @@ void ServerManager::get_autoindex_page(Client &client, std::string path)
 	
 	send(client.get_socket(), header.c_str(), header.size(), 0);
 	send(client.get_socket(), result.c_str(), result.length(), 0);
-	std::cout << "get autoindex page ok" << std::endl;
 }
