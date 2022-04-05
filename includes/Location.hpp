@@ -19,6 +19,7 @@ public:
 
 	void print_location_info();
 	static MethodType s_to_methodtype(std::string str);
+	std::string getCgiBinary(std::string &extension);
 };
 
 #endif
