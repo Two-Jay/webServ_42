@@ -16,7 +16,6 @@ private:
 	std::vector<Client> clients;
 	int max_fd;
 	fd_set reads;
-	struct timeval timeout;
 	FILE *fp;
 
 	std::map<int, std::string> status_info;

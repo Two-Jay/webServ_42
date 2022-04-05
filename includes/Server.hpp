@@ -21,6 +21,9 @@ public:
 	int redirect_status;
 	std::string redirect_url;
 
+	struct timeval send_timeout;
+	struct timeval recv_timeout;
+
 public:
 	std::string host;
 	std::vector<std::string> port;
