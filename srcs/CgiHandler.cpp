@@ -33,3 +33,36 @@ char** CgiHandler::set_env() {
 	envp[i] = NULL;
 	return envp;
 }
+
+int CgiHandler::cgi_exec(Request &request, Location &loc) {
+	int read_fd[2];
+	int write_fd[2];
+	int pid;
+	int ret1 = pipe(read_fd);
+
+	if (ret1 < 0 || pipe(write_fd) < 0)
+		return -1;
+	pid = fork();
+	if (pid < 0)
+		return -1;
+	else if (pid == 0) {
+		dup2(write_fd[0], STDIN_FILENO);
+		dup2(read_fd[1], STDOUT_FILENO);
+		close(write_fd[0]);
+		close(write_fd[1]);
+		close(read_fd[0]);
+		close(read_fd[1]);
+		char **env = set_env();
+		char *av[3] = { loc.getCgiBinary(".py").c_str(), "hello world", NULL};
+		if (env)
+			ret1 = execve(av[0], av, env);
+		else
+			exit(1);
+		exit(ret1);
+		// execve(,,env);
+	} else {
+		close(write_fd[0]);
+		close(read_fd[1]);
+
+	}
+}
