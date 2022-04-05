@@ -232,42 +232,43 @@ void ServerManager::get_method(Client &client, std::string path)
 				break;
 			}
 		}
-
-		// or autoindex
-		if (path == "/")
-			get_autoindex_page(client);
 	}
-	else if (path == "/data") get_index_page(client);
-	else if (path == "/board") path = "/board.html";
+
+	// if (path == "/data") get_index_page(client);
+	if (path == "/board") path = "/board.html";
 	else
 	{
 		char *dir_list;
 		std::string full_path = find_path_in_root(path, client);
 		FILE *fp = fopen(full_path.c_str(), "rb");
 		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-		if (!fp)
-			send_error_page(404, client);
+		if (!fp) send_error_page(404, client);
 		else
 		{
-			fseek(fp, 0L, SEEK_END);
-			size_t length = ftell(fp);
-			rewind(fp);
-			const char *type = find_content_type(full_path.c_str());
-
-			Response response(status_info[200]);
-			response.append_header("Connection", "close");
-			response.append_header("Content-Length", std::to_string(length));
-			response.append_header("Content-Type", type);
-
-			std::string header = response.make_header();
-			send(client.get_socket(), header.c_str(), header.size(), 0);
-
-			char buffer[BSIZE];
-			int r = fread(buffer, 1, BSIZE, fp);
-			while (r)
+			if (full_path.back() == '/' && client.server->autoindex)
+				get_autoindex_page(client, path);
+			else
 			{
-				send(client.get_socket(), buffer, r, 0);
-				r = fread(buffer, 1, BSIZE, fp);
+				fseek(fp, 0L, SEEK_END);
+				size_t length = ftell(fp);
+				rewind(fp);
+				const char *type = find_content_type(full_path.c_str());
+
+				Response response(status_info[200]);
+				response.append_header("Connection", "close");
+				response.append_header("Content-Length", std::to_string(length));
+				response.append_header("Content-Type", type);
+
+				std::string header = response.make_header();
+				send(client.get_socket(), header.c_str(), header.size(), 0);
+
+				char buffer[BSIZE];
+				int r = fread(buffer, 1, BSIZE, fp);
+				while (r)
+				{
+					send(client.get_socket(), buffer, r, 0);
+					r = fread(buffer, 1, BSIZE, fp);
+				}
 			}
 		}
 		fclose(fp);
@@ -407,26 +408,29 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 	return full_path;
 }
 
-std::string ServerManager::get_autoindex_page(Client &client)
+void ServerManager::get_autoindex_page(Client &client, std::string path)
 {
 	std::cout << "get autoindex page" << std::endl;
 	std::string addr;
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
-	result += client.get_client_address();
-	result += ":";
-	result += client.get_client_port();
+	result += path;
+	result += "<hr><div>";
 
 	DIR *dir = NULL;
-	if ((dir = opendir(client.server->root.c_str())) == NULL)
-		return NULL;
+	if ((dir = opendir((client.get_root_path(path) + path).c_str())) == NULL)
+		return;
 
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
-		result += "<a href=\"" + addr + file->d_name + "\">" + file->d_name + "</a><br>";
+	{
+		result += "<a href=\"" + addr + file->d_name;
+		result += (file->d_type == DT_DIR ? "/" : "") + (std::string)"\">";
+		result += (std::string)(file->d_name) + (file->d_type == DT_DIR ? "/" : "") + "</a><br>";
+	}
 	closedir(dir);
 
-	result += "</body></html>";
+	result += "</div></body></html>";
 
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
@@ -436,4 +440,5 @@ std::string ServerManager::get_autoindex_page(Client &client)
 	
 	send(client.get_socket(), header.c_str(), header.size(), 0);
 	send(client.get_socket(), result.c_str(), result.length(), 0);
+	std::cout << "get autoindex page ok" << std::endl;
 }
