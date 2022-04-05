@@ -2,6 +2,8 @@
 
 Location::Location(/* args */)
 {
+	path = "";
+	root = "";
 }
 
 Location::~Location()

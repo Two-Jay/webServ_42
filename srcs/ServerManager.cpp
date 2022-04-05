@@ -234,7 +234,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		}
 	}
 
-	// if (path == "/data") get_index_page(client);
+	if (path == "/data") get_index_page(client);
 	if (path == "/board") path = "/board.html";
 	else
 	{
@@ -280,37 +280,34 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	std::cout << "request: " << client.request << "\n";
-	std::cout << "body: " << request.body << "\n";
-	// replace(body, "+", " ");
-	// char *title, *content;
 	std::string title, content;
-	
-	int start = request.body.find("title=");
-	int end = request.body.find_first_of("&", start);
-	title = request.body.substr(start, end);
-
-	start = request.body.find("content=", end);
-	content = request.body.substr(start, request.body.length());
-
+	int start = request.body.find("title=") + 6;
+	int end = request.body.find("&", start);
+	title = request.body.substr(start, end - start);
+	start = request.body.find("content=", end) + 8;
+	content = request.body.substr(start, request.body.length() - start);
 	std::cout << "title: " << title << ", content: " << content << "\n";
-	// title=test+title%2B&content=description+test%2Btest
-	// 
-	// server 뒤져서 location 뒤져서.. body에 맞는 path와 method가 존재하는지 찾고..
-	// 그 찾은 부분의 root를 저장하는 경로로...... 
-	// printf("recived data(%zu): |%s|\n", strlen(data), data);
-	// FILE *fp = fopen("data/" + title, "w");
-	fp = fopen(("www/html/data/" + title).c_str(), "w");
+
+	std::string root_path = client.get_root_path(request.path);
+	fp = fopen((root_path + "/" + title).c_str(), "w");
+	if (!fp)
+	{
+		system(("mkdir -p " + client.get_root_path(request.path)).c_str());
+		fp = fopen((root_path + "/" + title).c_str(), "w");
+	}
+	if (!fp)
+	{
+		send_error_page(500, client);
+		return;
+	}
 	fwrite(content.c_str(), content.size(), 1, fp);
 	fclose(fp);
-	// free(title);
-	// free(content);
-	// post_content();
+	
 	Response response(status_info[201]);
 	response.append_header("Connection", "close");
-
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
+
 	drop_client(client);
 }
 
@@ -345,11 +342,6 @@ std::string ServerManager::get_contents_list()
 	return result;
 }
 
-void ServerManager::get_content()
-{
-
-}
-
 void ServerManager::get_index_page(Client &client)
 {
 	std::string list;
@@ -366,15 +358,6 @@ void ServerManager::get_index_page(Client &client)
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
 	send(client.get_socket(), result.c_str(), result.length(), 0);
-}
-
-void ServerManager::post_content()
-{
-}
-
-void ServerManager::delete_content()
-{
-
 }
 
 /*

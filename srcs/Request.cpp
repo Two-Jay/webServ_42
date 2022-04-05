@@ -31,7 +31,7 @@ void Request::parsing(std::string request)
 	{
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
-			this->body = request.substr(4, request.size());
+			this->body = request.substr(i + 2, request.size());
 			break;
 		}
 		int deli = request.find_first_of(":", i);
@@ -39,7 +39,6 @@ void Request::parsing(std::string request)
 		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end + 2 - deli - 3);
 		i = end + 2;
 	}
-	std::cout << headers;
 }
 
 std::string Request::get_path()

@@ -41,11 +41,8 @@ public:
 	void post_method(Client &client, Request &request);
 	void delete_method(Client &client, std::string path);
 
-	void get_content();
 	void get_index_page(Client &client);
 	void get_autoindex_page(Client &client, std::string path);
-	void post_content();
-	void delete_content();
 	std::string get_contents_list();
 
 	const char *find_content_type(const char *path);

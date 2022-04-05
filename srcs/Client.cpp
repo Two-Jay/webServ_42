@@ -60,11 +60,11 @@ std::string Client::get_root_path(std::string path)
 
 	for (int i = 0; i < server->locations.size(); i++)
 	{
-		if (server->locations[i].root != "" && path.find(server->locations[i].path) != std::string::npos)
+		if ((server->locations[i].root != "") && (path.find(server->locations[i].path) != std::string::npos))
 		{
-			if (root_length < server->locations[i].path.length())
+			if (root_length < server->locations[i].root.length())
 			{
-				root_length = server->locations[i].path.length();
+				root_length = server->locations[i].root.length();
 				root = server->locations[i].root;
 				index = i;
 			}
