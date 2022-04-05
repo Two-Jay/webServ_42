@@ -47,7 +47,7 @@ public:
 	void post_content();
 	void delete_content();
 	std::string get_contents_list();
-	std::string make_autoindex_page(Client &client);
+	std::string get_autoindex_page(Client &client);
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);

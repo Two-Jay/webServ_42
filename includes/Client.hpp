@@ -10,12 +10,12 @@ class Client
 private:
 	int socket;
 	int received_size;
-	Server *server;
 	
 public:
 	socklen_t address_length;
 	struct sockaddr_storage address;
 	char request[MAX_REQUEST_SIZE + 1];
+	Server *server;
 
 	Client(Server *server);
 	~Client();

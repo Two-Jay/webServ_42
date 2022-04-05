@@ -221,50 +221,57 @@ void ServerManager::get_method(Client &client, std::string path)
 	if (path == "/")
 	{
 		// index page 중에 하나
-		path = "/index.html";
+		std::string root = client.get_root_path(path);
+		for (int i = 0; i < client.server->index.size(); i++)
+		{
+			FILE *fp = fopen((root + client.server->index[i]).c_str(), "rb");
+			if (fp)
+			{
+				fclose(fp);
+				path = "/" + client.server->index[i];
+				break;
+			}
+		}
 
 		// or autoindex
+		if (path == "/")
+			get_autoindex_page(client);
 	}
-	if (path == "/data")
-	{
-		get_index_page(client);
-		return ;
-	}
-	if (path == "/board")
-	{
-		path = "/board.html";
-	}
-
-	char *dir_list;
-	std::string full_path = find_path_in_root(path, client);
-	FILE *fp = fopen(full_path.c_str(), "rb");
-	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-	if (!fp)
-		send_error_page(404, client);
+	else if (path == "/data") get_index_page(client);
+	else if (path == "/board") path = "/board.html";
 	else
 	{
-		fseek(fp, 0L, SEEK_END);
-		size_t length = ftell(fp);
-		rewind(fp);
-		const char *type = find_content_type(full_path.c_str());
-
-		Response response(status_info[200]);
-		response.append_header("Connection", "close");
-		response.append_header("Content-Length", std::to_string(length));
-		response.append_header("Content-Type", type);
-
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-
-		char buffer[BSIZE];
-		int r = fread(buffer, 1, BSIZE, fp);
-		while (r)
+		char *dir_list;
+		std::string full_path = find_path_in_root(path, client);
+		FILE *fp = fopen(full_path.c_str(), "rb");
+		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
+		if (!fp)
+			send_error_page(404, client);
+		else
 		{
-			send(client.get_socket(), buffer, r, 0);
-			r = fread(buffer, 1, BSIZE, fp);
+			fseek(fp, 0L, SEEK_END);
+			size_t length = ftell(fp);
+			rewind(fp);
+			const char *type = find_content_type(full_path.c_str());
+
+			Response response(status_info[200]);
+			response.append_header("Connection", "close");
+			response.append_header("Content-Length", std::to_string(length));
+			response.append_header("Content-Type", type);
+
+			std::string header = response.make_header();
+			send(client.get_socket(), header.c_str(), header.size(), 0);
+
+			char buffer[BSIZE];
+			int r = fread(buffer, 1, BSIZE, fp);
+			while (r)
+			{
+				send(client.get_socket(), buffer, r, 0);
+				r = fread(buffer, 1, BSIZE, fp);
+			}
 		}
+		fclose(fp);
 	}
-	fclose(fp);
 	drop_client(client);
 }
 
@@ -358,7 +365,6 @@ void ServerManager::get_index_page(Client &client)
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
 	send(client.get_socket(), result.c_str(), result.length(), 0);
-	drop_client(client);
 }
 
 void ServerManager::post_content()
@@ -395,15 +401,15 @@ const char *ServerManager::find_content_type(const char *path)
 
 std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
-	// server의 location의 root파악해서 가져오기
 	std::string full_path;
 	full_path.append(client.get_root_path(path));
 	full_path.append(path);
 	return full_path;
 }
 
-std::string ServerManager::make_autoindex_page(Client &client)
+std::string ServerManager::get_autoindex_page(Client &client)
 {
+	std::cout << "get autoindex page" << std::endl;
 	std::string addr;
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
@@ -412,15 +418,22 @@ std::string ServerManager::make_autoindex_page(Client &client)
 	result += client.get_client_port();
 
 	DIR *dir = NULL;
-	// if ((dir = opendir(resource_path.c_str())) == NULL)
-	// 	return NULL;
+	if ((dir = opendir(client.server->root.c_str())) == NULL)
+		return NULL;
 
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
-		result += "<a href=\"" + addr + file->d_name + "\">" + file->d_name + "</a><br>\n";
+		result += "<a href=\"" + addr + file->d_name + "\">" + file->d_name + "</a><br>";
 	closedir(dir);
 
 	result += "</body></html>";
 
-	return (result);
+	Response response(status_info[200]);
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(result.length()));
+	response.append_header("Content-Type", "text/html");
+	std::string header = response.make_header();
+	
+	send(client.get_socket(), header.c_str(), header.size(), 0);
+	send(client.get_socket(), result.c_str(), result.length(), 0);
 }
