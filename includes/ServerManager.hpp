@@ -16,7 +16,6 @@ private:
 	std::vector<Client> clients;
 	int max_fd;
 	fd_set reads;
-	FILE *fp;
 
 	std::map<int, std::string> status_info;
 
@@ -41,9 +40,9 @@ public:
 	void post_method(Client &client, Request &request);
 	void delete_method(Client &client, std::string path);
 
-	void get_index_page(Client &client);
+	void get_board_content(Client &client);
 	void get_autoindex_page(Client &client, std::string path);
-	std::string get_contents_list();
+	std::string make_content_list();
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);
