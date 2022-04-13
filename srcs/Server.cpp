@@ -96,3 +96,22 @@ MethodType Server::s_to_methodtype(std::string str)
 	}
 	return INVALID;
 }
+
+Location* Server::currLocation(std::string request_uri) const {
+	if (this->locations.size() == 0)
+		return NULL;
+
+	std::vector<Location>::const_iterator res = this->locations.begin();
+	unsigned long	longest = 0;
+
+	for (std::vector<Location>::const_iterator it = this->locations.begin(); \
+	it != this->locations.end(); it++) {
+		std::string path = it->path;
+		if (request_uri.compare(0, path.length(), path) == 0 \
+		&& longest < path.length()) {
+			longest = path.length();
+			res = it;
+		}
+	}
+	return const_cast<Location*>(&*res);
+}

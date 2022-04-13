@@ -8,6 +8,7 @@
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "CgiHandler.hpp"
 
 class ServerManager
 {

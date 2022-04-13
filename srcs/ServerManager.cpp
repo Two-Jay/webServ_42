@@ -143,6 +143,15 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
+bool handleCGI(Request *request, Location *loc) {
+	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
+	it != loc->cgi_info.end(); it++) {
+		if (request->get_path().find(it->first) != std::string::npos)
+			return true;
+	}
+	return false;
+}
+
 void ServerManager::treat_request()
 {
 	for (int i = 0  ; i < clients.size() ; i++)
@@ -176,6 +185,13 @@ void ServerManager::treat_request()
 				
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
+
+				Location* loc = clients[i].server->currLocation(req.get_path());
+				if (handleCGI(&req, loc)) {
+					CgiHandler cgi(req);
+					cgi.cgi_exec(req, *loc);
+					return ;
+				}
 				// body size 검사 해야함
 				if (req.method == "GET")
 					get_method(clients[i], req.path);

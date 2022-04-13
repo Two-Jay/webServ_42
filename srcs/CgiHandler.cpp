@@ -65,6 +65,6 @@ int CgiHandler::cgi_exec(Request &request, Location &loc) {
 	} else {
 		close(write_fd[0]);
 		close(read_fd[1]);
-
+		return 1;
 	}
 }
