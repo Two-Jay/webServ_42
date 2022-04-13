@@ -7,6 +7,7 @@
 class Location
 {
 public:
+	int client_body_limit;
 	std::string path;
 	std::string root;
 	std::vector<std::string> index;
