@@ -3,7 +3,9 @@
 
 #include <iostream>
 #include <map>
+#include <unistd.h>
 #include "Request.hpp"
+#include "Location.hpp"
 
 class CgiHandler {
 	private:
@@ -11,6 +13,7 @@ class CgiHandler {
 	public:
 	CgiHandler(Request &request);
 	char** set_env();
+	int cgi_exec(Request &Request, Location &loc);
 };
 
 #endif
