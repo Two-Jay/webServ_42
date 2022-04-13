@@ -53,7 +53,9 @@ int CgiHandler::cgi_exec(Request &request, Location &loc) {
 		close(read_fd[0]);
 		close(read_fd[1]);
 		char **env = set_env();
-		char *av[3] = { loc.getCgiBinary(".py").c_str(), "hello world", NULL};
+		std::string extension = request.get_path().substr(request.get_path().find(".") + 1);
+		char *av[3] = { const_cast<char*>(loc.getCgiBinary(extension).c_str()), 
+		const_cast<char*>(loc.root.c_str()), NULL};
 		if (env)
 			ret1 = execve(av[0], av, env);
 		else
