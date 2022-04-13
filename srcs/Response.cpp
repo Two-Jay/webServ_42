@@ -41,7 +41,8 @@ void Response::make_error_body()
 	result.append("<body>");
 	result.append("<h1>" + status.substr(0, 3) + "</h1>");
 	result.append("<h3>" + status.substr(4, status.size()) + "</h3>");
-	result.append("<p>Click <a href=\"index.html\">here</a> to return home.</p>");
+	// index.html을 index.html로 변경해야하는 것이 아닌가,.?
+	result.append("<p>Click <a href=\"/index.html\">here</a> to return home.</p>");
 	result.append("</body></html>");
 	
 	body.clear();
