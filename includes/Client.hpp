@@ -10,12 +10,12 @@ class Client
 private:
 	int socket;
 	int received_size;
-	Server *server;
 	
 public:
 	socklen_t address_length;
 	struct sockaddr_storage address;
 	char request[MAX_REQUEST_SIZE + 1];
+	Server *server;
 
 	Client(Server *server);
 	~Client();
@@ -25,7 +25,7 @@ public:
 	void set_socket(int value);
 	void set_received_size(int size);
 
-	std::string get_root_path();
+	std::string get_root_path(std::string path);
 	
 	const char *get_client_address();
 	const char *get_client_port();

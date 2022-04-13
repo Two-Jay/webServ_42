@@ -25,6 +25,10 @@ int Client::get_received_size() const
 void Client::set_socket(int value)
 {
 	socket = value;
+	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (void*)&server->recv_timeout, sizeof(struct timeval)) < 0)
+		fprintf(stderr, "setsockopt: recv_timeout set failed\n");
+	if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (void*)&server->send_timeout, sizeof(struct timeval)) < 0)
+		fprintf(stderr, "setsockopt: send_timeout set failed\n");
 }
 
 void Client::set_received_size(int size)
@@ -46,4 +50,27 @@ const char *Client::get_client_port()
 	getnameinfo((struct sockaddr *)&address, address_length,
 		0, 0, service_buffer, sizeof(service_buffer), NI_NUMERICHOST);
 	return service_buffer;
+}
+
+std::string Client::get_root_path(std::string path)
+{
+	std::string root;
+	int root_length = 0;
+	int index = -1;
+
+	for (int i = 0; i < server->locations.size(); i++)
+	{
+		if ((server->locations[i].root != "") && (path.find(server->locations[i].path) != std::string::npos))
+		{
+			if (root_length < server->locations[i].root.length())
+			{
+				root_length = server->locations[i].root.length();
+				root = server->locations[i].root;
+				index = i;
+			}
+		}
+	}
+	if (index == -1)
+		root = server->root;
+	return root;
 }
