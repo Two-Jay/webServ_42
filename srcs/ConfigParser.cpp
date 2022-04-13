@@ -211,6 +211,10 @@ int ConfigParser::set_location_values(Location *location, const std::string key,
 			return FAILED;
 		location->cgi_info[value.substr(0, i)] = value.substr(i + 1, value.length());
 	}
+	else if (key == "client_body_limit")
+	{
+		location->client_body_limit = atoi(value.c_str());
+	}
 	else
 	{
 		return FAILED;
