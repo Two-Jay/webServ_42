@@ -144,9 +144,11 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-bool handleCGI(Request *request, Location *loc) {
+bool handleCGI(Request *request, Location *loc)
+{
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
-	it != loc->cgi_info.end(); it++) {
+	it != loc->cgi_info.end(); it++)
+	{
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}
@@ -186,6 +188,7 @@ void ServerManager::treat_request()
 				clients[i].request[clients[i].get_received_size()] = 0;
 
 				Location* loc = clients[i].server->currLocation(req.get_path());
+				std::cout << "Request: " << req;
 				if (handleCGI(&req, loc)) {
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
