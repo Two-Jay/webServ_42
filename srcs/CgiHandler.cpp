@@ -56,6 +56,7 @@ int CgiHandler::cgi_exec(Request &request, Location &loc) {
 		std::string extension = request.get_path().substr(request.get_path().find(".") + 1);
 		char *av[3] = { const_cast<char*>(loc.getCgiBinary(extension).c_str()), 
 		const_cast<char*>(loc.root.c_str()), NULL};
+		std::cout << "CGI exec\n";
 		if (env)
 			ret1 = execve(av[0], av, env);
 		else
