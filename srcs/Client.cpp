@@ -25,6 +25,8 @@ int Client::get_received_size() const
 void Client::set_socket(int value)
 {
 	socket = value;
+
+	fcntl(socket, F_SETFL, O_NONBLOCK);
 	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (void*)&server->recv_timeout, sizeof(struct timeval)) < 0)
 		fprintf(stderr, "setsockopt: recv_timeout set failed\n");
 	if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (void*)&server->send_timeout, sizeof(struct timeval)) < 0)
