@@ -340,7 +340,6 @@ void ServerManager::delete_method(Client &client, std::string path)
 	std::cout << "DELETE method\n";
 	std::string full_path = find_path_in_root(path, client);
 	std::cout << full_path << std::endl;
-	// std::remove(full_path.c_str());
 
 	std::cout << full_path << std::endl;
 	FILE *fp = fopen(full_path.c_str(), "r");
@@ -351,6 +350,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 	}
 	fclose(fp);
 	
+	std::remove(full_path.c_str());
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
 
@@ -419,6 +419,7 @@ const char *ServerManager::find_content_type(const char *path)
 
 std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
+	// 수정 필요
 	std::string full_path;
 	full_path.append(client.get_root_path(path));
 	full_path.append(path);
