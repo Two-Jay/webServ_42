@@ -422,7 +422,9 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 	// 수정 필요
 	std::string full_path;
 	full_path.append(client.get_root_path(path));
-	full_path.append(path);
+	std::string location = client.server->currLocation(path)->path;
+	std::string str = path.substr(location.length(), std::string::npos);
+	full_path.append(str);
 	return full_path;
 }
 
