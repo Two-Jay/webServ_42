@@ -93,6 +93,7 @@ void ServerManager::print_servers_info()
 void ServerManager::wait_on_clients()
 {
 	int max = -1;
+	int recv;
 	fd_set reads;
 
 	FD_ZERO(&reads);
@@ -112,10 +113,19 @@ void ServerManager::wait_on_clients()
 		if (clients[i].get_socket() > max)
 			max = clients[i].get_socket();
 	}
-
-	if (select(max + 1, &reads, 0, 0, 0) < 0)
+	// timeout tv 설정 이후 select의 5번째 매개변수로 설정
+	// 타임아웃시 0리턴
+	// ? : server 마다 timeout 시간이 다를 수 있나?
+	// ! : 만약 다를 수 있다면, 어떻게 개별적으로 servers[i]의 listen_socker[i]에 대한 timeout 상황을 측정하나?
+	recv = select(max + 1, &reads, 0, 0, 0);
+	if (recv < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+		exit(1);
+	}
+	if (recv == 0)
+	{
+		fprintf(stderr, "[ERROR] timeout. (%d)\n", errno);
 		exit(1);
 	}
     //변화가 생긴 소켓
