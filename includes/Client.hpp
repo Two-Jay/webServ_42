@@ -3,6 +3,7 @@
 
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/time.h>
 #include "Server.hpp"
 
 class Client
