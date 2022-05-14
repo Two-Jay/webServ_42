@@ -213,11 +213,6 @@ void ServerManager::treat_request()
 	}
 }
 
-bool ServerManager::is_payload_too_long(Client& client) {
-	return (client.get_received_size() > client.server.) ? true : false;
-}
-
-
 bool ServerManager::is_response_timeout(Client& client) {
 	static timeval tv;
 	
