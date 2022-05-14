@@ -112,7 +112,7 @@ void ServerManager::wait_on_clients()
 		FD_SET(clients[i].get_socket(), &reads);
 		if (clients[i].get_socket() > max)
 			max = clients[i].get_socket();
-	};
+	}
 	if (select(max + 1, &reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
