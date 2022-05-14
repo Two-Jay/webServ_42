@@ -199,6 +199,8 @@ void ServerManager::treat_request()
 				// Content_length 체크해서.
 				if (is_response_timeout(clients[i]) == true)
 					send_error_page(408, clients[i]);
+				if (clients[i].server->redirect_status != -1)
+					send_redirection(clients[i], req.method);
 				else if (req.method == "GET")
 					get_method(clients[i], req.path);
 				else if (req.method == "POST")
@@ -220,6 +222,18 @@ bool ServerManager::is_response_timeout(Client& client) {
 	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
 	client.set_last_time_sec(tv);
 	return false;
+}
+
+void ServerManager::send_redirection(Client &client, std::string request_method)
+{
+	std::cout << ">> send redirection response" << std::endl;
+	Response response(status_info[client.server->redirect_status]);
+	response.append_header("Location", client.server->redirect_url);
+	response.append_header("Content-Length", "0");
+	response.make_header();
+
+	std::string result = response.serialize();
+	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
 void ServerManager::send_error_page(int code, Client &client)

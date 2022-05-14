@@ -37,7 +37,7 @@ public:
 	void print_servers_info();
 
 private:
-	void send_redirection(int code, Client &client);
+	void send_redirection(Client &client, std::string request_method);
 	void send_error_page(int code, Client &client);
 	bool handle_CGI(Request *request, Location *loc);
 	bool is_response_timeout(Client& client);
