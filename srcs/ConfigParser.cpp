@@ -173,6 +173,12 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 	{
 		server->client_body_limit = atoi(value.c_str());
 	}
+	else if (key == "recv_timeout") {
+		server->recv_timeout.tv_sec = atoi(value.c_str());
+	}
+	else if (key == "send_timeout") {
+		server->send_timeout.tv_sec = atoi(value.c_str());
+	}
 	else if (key == "return")
 	{
 		std::vector<std::string> tmp = split(value, ' ');
