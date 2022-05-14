@@ -37,7 +37,7 @@ public:
 	void print_servers_info();
 
 private:
-	void send_error_page(int code, Client &Client);
+	void send_error_page(int code, Client &client);
 	bool handle_CGI(Request *request, Location *loc);
 	bool is_response_timeout(Client& client);
 
