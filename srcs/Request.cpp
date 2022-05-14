@@ -18,7 +18,7 @@ std::string Request::get_port() {
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
-void Request::parsing(std::string request)
+bool Request::parsing(std::string request)
 {
 	std::cout << "> request parsing" << std::endl;
 	int i = request.find_first_of(" ", 0);
@@ -26,6 +26,8 @@ void Request::parsing(std::string request)
 	int j = request.find_first_of(" ", i + 1);
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
+	if (headers["HTTP"] != "HTTP/1.1")
+		return false; 
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())
 	{
@@ -39,6 +41,7 @@ void Request::parsing(std::string request)
 		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end + 2 - deli - 3);
 		i = end + 2;
 	}
+	return true;
 }
 
 std::string Request::get_path()

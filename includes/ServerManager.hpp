@@ -36,6 +36,8 @@ public:
 
 	void treat_request();
 	void send_error_page(int code, Client &Client);
+	void send_405_error_page(int code, Client &Client, Location &loc);
+	int	is_allowed_method(Location &location, std::string method);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);

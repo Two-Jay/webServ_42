@@ -16,11 +16,14 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(404, "404 Not found"));
 	status_info.insert(std::make_pair(405, "405 Method Not Allowed"));
 	status_info.insert(std::make_pair(408, "408 Request Timeout"));
+	status_info.insert(std::make_pair(411, "411 Length Required"));
+	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
 	status_info.insert(std::make_pair(414, "414 URI Too Long"));
 	status_info.insert(std::make_pair(429, "429 Too Many Request"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
+	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
 }
 
 ServerManager::~ServerManager()
@@ -116,6 +119,20 @@ void ServerManager::wait_on_clients()
 	if (select(max + 1, &reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+		if (errno == EINVAL) 
+		{
+			for (int i = 0; i < clients.size(); i++)
+			{
+				send_error_page(429, clients[i]);
+			}	
+		}
+		else 
+		{
+			for (int i = 0; i < clients.size(); i++)
+			{
+				send_error_page(500, clients[i]);
+			}
+		}
 		exit(1);
 	}
     //변화가 생긴 소켓
@@ -176,33 +193,44 @@ void ServerManager::treat_request()
 				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
 				if (errno == 2)
 					send_error_page(404, clients[i]);
+				send_error_page(500, clients[i]);
 				drop_client(clients[i]);
 				i--;
 			}
 			else
 			{
 				Request req = Request(clients[i].get_socket());
-				req.parsing(clients[i].request);
+				if (!req.parsing(clients[i].request)) {
+					send_error_page(505, clients[i]);
+					continue;
+				}
 				
+				if (req.headers["Content-Length"] != "" && 
+				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit) {
+					send_error_page(413, clients[i]);
+					continue;
+				}
+
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 
 				Location* loc = clients[i].server->currLocation(req.get_path());
+				if (!is_allowed_method(*loc, req.method)) {
+					send_405_error_page(405, clients[i], *loc);
+					continue;
+				}
 				std::cout << "Request: " << req;
 				if (handleCGI(&req, loc)) {
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
 				}
-				// body size 검사 해야함
 				if (req.method == "GET")
 					get_method(clients[i], req.path);
 				else if (req.method == "POST")
 					post_method(clients[i], req);
 				else if (req.method == "DELETE")
 					delete_method(clients[i], req.path);
-				else
-					send_error_page(400, clients[i]);
 				drop_client(clients[i]);
 			}
 		}
@@ -222,6 +250,40 @@ void ServerManager::send_error_page(int code, Client &client)
 	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
+void ServerManager::send_405_error_page(int code, Client &client, Location &loc)
+{
+	std::cout << ">> send error page" << std::endl;
+	std::string allowed_method;
+	Response response(status_info[code]);
+	response.make_error_body();
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Type", "text/html");
+	for (int i = 0; i < loc.allow_methods.size(); i++) {
+		allowed_method += loc.methodtype_to_s(loc.allow_methods[i]);
+		if (i < loc.allow_methods.size() - 1)
+			allowed_method += ", ";
+	}
+	response.append_header("Allow", allowed_method);
+
+	std::string result = response.serialize();
+	send(client.get_socket(), result.c_str(), result.size(), 0);
+}
+
+int	ServerManager::is_allowed_method(Location &loc, std::string method) 
+{
+	MethodType req_method = loc.s_to_methodtype(method);
+	if (req_method == GET)
+		return true;
+	for (std::vector<MethodType>::iterator it = loc.allow_methods.begin(); 
+	it != loc.allow_methods.end(); it++) 
+	{
+		if (req_method == *it)
+			return true;
+	}
+	return false;
+}
+
 /*
 ** http methods
 */
@@ -232,7 +294,7 @@ void ServerManager::get_method(Client &client, std::string path)
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
-		send_error_page(400, client);
+		send_error_page(414, client);
 		return;
 	}
 
@@ -297,6 +359,11 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
+	if (request.headers.find("Content-Length") == request.headers.end()) {
+		send_error_page(411, client);
+		return;
+	}
+
 	std::string title, content;
 	int start = request.body.find("title=") + 6;
 	int end = request.body.find("&", start);
@@ -340,7 +407,6 @@ void ServerManager::delete_method(Client &client, std::string path)
 	std::cout << "DELETE method\n";
 	std::string full_path = find_path_in_root(path, client);
 	std::cout << full_path << std::endl;
-	// std::remove(full_path.c_str());
 
 	std::cout << full_path << std::endl;
 	FILE *fp = fopen(full_path.c_str(), "r");
@@ -350,7 +416,8 @@ void ServerManager::delete_method(Client &client, std::string path)
 		return;
 	}
 	fclose(fp);
-	
+
+	// std::remove(full_path.c_str());
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
 

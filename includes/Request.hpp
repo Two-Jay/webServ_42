@@ -16,7 +16,7 @@ public:
 	Request(int client_fd);
 	~Request();
 
-	void parsing(std::string request);
+	bool parsing(std::string request);
 	std::string get_path(); // url after program name and a slash
 	std::string get_query(); // query string : after ?
 	int get_client_fd();

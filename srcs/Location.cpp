@@ -40,6 +40,16 @@ MethodType Location::s_to_methodtype(std::string str)
 	return INVALID;
 }
 
+std::string Location::methodtype_to_s(MethodType method) {
+	if (method == GET)
+		return "GET";
+	else if (method == POST)
+		return "POST";
+	else if (method == DELETE)
+		return "DELETE";
+	return "";
+}
+
 std::string Location::getCgiBinary(std::string &extension) {
 	for (std::map<std::string, std::string>::const_iterator it = this->cgi_info.begin();
 	it != this->cgi_info.end(); ++it) {
