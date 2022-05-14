@@ -195,7 +195,6 @@ void ServerManager::treat_request()
 				// body size 검사 해야함
 				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
 				// Content_length 체크해서.
-
 				if (is_response_timeout(clients[i]) == true)
 					send_error_page(408, clients[i]);
 				else if (req.method == "GET")
@@ -211,6 +210,11 @@ void ServerManager::treat_request()
 		}
 	}
 }
+
+bool ServerManager::is_payload_too_long(Client& client) {
+	return (client.get_received_size() > client.server.) ? true : false;
+}
+
 
 bool ServerManager::is_response_timeout(Client& client) {
 	static timeval tv;

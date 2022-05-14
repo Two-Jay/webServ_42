@@ -13,6 +13,7 @@ public:
 	std::string path;
 	std::map<std::string, std::string> headers;
 	std::string body;
+	size_t	content_length;
 	Request(int client_fd);
 	~Request();
 
@@ -25,7 +26,7 @@ public:
 		out << "method: " << req.method << "\npath: " << req.path << "\nheaders: "
 		<< req.headers << "\nbody: " << req.body << "\n";
 		return out;
-}
+	}
 };
 
 
