@@ -38,7 +38,9 @@ public:
 	void print_server_info();
 
 	static MethodType s_to_methodtype(std::string str);
-	Location* currLocation(std::string request_uri) const;
+
+	Location* get_cur_location(std::string request_uri) const;
+	bool is_in_location(std::string location_path, std::string request_uri) const;
 };
 
 #endif

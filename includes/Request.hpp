@@ -22,8 +22,9 @@ public:
 	std::string get_query(); // query string : after ?
 	int get_client_fd();
 	std::string get_port();
-	friend std::ostream &operator<<(std::ostream &out, const Request &req) {
-		out << "method: " << req.method << "\npath: " << req.path << "\nheaders: "
+	friend std::ostream &operator<<(std::ostream &out, const Request &req)
+	{
+		out << "\nmethod: " << req.method << "\npath: " << req.path << "\nheaders:\n"
 		<< req.headers << "\nbody: " << req.body << "\n";
 		return out;
 	}
