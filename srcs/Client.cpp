@@ -5,6 +5,9 @@ Client::Client(Server *server)
 	this->server = server;
 	address_length = sizeof(struct sockaddr_storage);
 	received_size = 0;
+	timeval tv;
+	memset(&tv, 0, sizeof(tv));
+	last_get_time = tv;
 	memset(request, 0, MAX_REQUEST_SIZE + 1);
 }
 
@@ -21,6 +24,16 @@ int Client::get_received_size() const
 {
 	return received_size;
 }
+
+timeval Client::get_last_time() const
+{
+	return last_get_time;
+};
+
+void Client::set_last_time_sec(timeval& tv)
+{
+	last_get_time = tv;	
+};
 
 void Client::set_socket(int value)
 {

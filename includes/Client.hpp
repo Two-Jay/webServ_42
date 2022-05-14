@@ -10,6 +10,7 @@ class Client
 private:
 	int socket;
 	int received_size;
+	timeval last_get_time;
 	
 public:
 	socklen_t address_length;
@@ -22,8 +23,10 @@ public:
 	
 	int get_socket() const;
 	int get_received_size() const;
+	timeval get_last_time() const;
 	void set_socket(int value);
 	void set_received_size(int size);
+	void set_last_time_sec(timeval& tv);
 
 	std::string get_root_path(std::string path);
 	
