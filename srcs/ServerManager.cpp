@@ -214,9 +214,11 @@ void ServerManager::treat_request()
 				clients[i].request[clients[i].get_received_size()] = 0;
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
-				if (!is_allowed_method(*loc, req.method))
+				std::vector<MethodType> method_list;
+				loc ? method_list = loc->allow_methods : method_list = clients[i].server->allow_methods;
+				if (!is_allowed_method(method_list, req.method))
 				{
-					send_405_error_page(405, clients[i], *loc);
+					send_405_error_page(405, clients[i], method_list);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -232,7 +234,7 @@ void ServerManager::treat_request()
 				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
 				// Content_length 체크해서.
 				if (is_response_timeout(clients[i]) == true)
-					send_error_page(408, clients[i]);
+				 	send_error_page(408, clients[i]);
 				else if (req.method == "GET")
 					get_method(clients[i], req.path);
 				else if (req.method == "POST")
@@ -267,39 +269,48 @@ void ServerManager::send_error_page(int code, Client &client)
 	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
-void ServerManager::send_405_error_page(int code, Client &client, Location &loc)
+void ServerManager::send_405_error_page(int code, Client &client, std::vector<MethodType> allow_methods)
 {
 	std::cout << ">> send error page" << std::endl;
-	std::string allowed_method;
+	std::string allowed_method_list;
 	Response response(status_info[code]);
 	response.make_error_body();
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
-	for (int i = 0; i < loc.allow_methods.size(); i++)
+	for (int i = 0; i < allow_methods.size(); i++)
 	{
-		allowed_method += loc.methodtype_to_s(loc.allow_methods[i]);
-		if (i < loc.allow_methods.size() - 1)
-			allowed_method += ", ";
+		allowed_method_list += methodtype_to_s(allow_methods[i]);
+		if (i < allow_methods.size() - 1)
+			allowed_method_list += ", ";
 	}
-	response.append_header("Allow", allowed_method);
+	response.append_header("Allow", allowed_method_list);
 
 	std::string result = response.serialize();
 	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
-int	ServerManager::is_allowed_method(Location &loc, std::string method) 
+int	ServerManager::is_allowed_method(std::vector<MethodType> allow_methods, std::string method) 
 {
-	MethodType req_method = loc.s_to_methodtype(method);
-	if (req_method == GET)
+	if (method == "GET")
 		return true;
-	for (std::vector<MethodType>::iterator it = loc.allow_methods.begin(); 
-	it != loc.allow_methods.end(); it++) 
+	for (std::vector<MethodType>::iterator it = allow_methods.begin(); 
+	it != allow_methods.end(); it++)
 	{
-		if (req_method == *it)
+		if (method == methodtype_to_s(*it))
 			return true;
 	}
 	return false;
+}
+
+std::string ServerManager::methodtype_to_s(MethodType method) {
+	if (method == GET)
+		return "GET";
+	else if (method == POST)
+		return "POST";
+	else if (method == DELETE)
+		return "DELETE";
+	return "";
 }
 
 /*
