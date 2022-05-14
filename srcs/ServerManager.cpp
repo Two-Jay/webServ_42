@@ -177,6 +177,7 @@ void ServerManager::treat_request()
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
 				send_error_page(400, clients[i]);
+				drop_client(clients[i]);
 				continue;
 			}
 			
@@ -199,6 +200,7 @@ void ServerManager::treat_request()
 				if (!req.parsing(clients[i].request))
 				{
 					send_error_page(505, clients[i]);
+					drop_client(clients[i]);
 					continue;
 				}
 				
@@ -206,6 +208,7 @@ void ServerManager::treat_request()
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
 					send_error_page(413, clients[i]);
+					drop_client(clients[i]);
 					continue;
 				}
 
@@ -216,6 +219,7 @@ void ServerManager::treat_request()
 				if (!is_allowed_method(*loc, req.method))
 				{
 					send_405_error_page(405, clients[i], *loc);
+					drop_client(clients[i]);
 					continue;
 				}
 
