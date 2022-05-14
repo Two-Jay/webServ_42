@@ -144,7 +144,7 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-bool handleCGI(Request *request, Location *loc)
+bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
@@ -189,7 +189,8 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::cout << "Request: " << req;
-				if (handleCGI(&req, loc)) {
+				if (handle_CGI(&req, loc))
+				{
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
@@ -228,7 +229,7 @@ void ServerManager::send_error_page(int code, Client &client)
 
 void ServerManager::get_method(Client &client, std::string path)
 {
-	std::cout << "GET method=" << std::endl;
+	std::cout << "GET method" << std::endl;
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
@@ -252,45 +253,41 @@ void ServerManager::get_method(Client &client, std::string path)
 		}
 	}
 
-	if (path == "/board/content") get_board_content(client);
+	char *dir_list;
+	std::string full_path = find_path_in_root(path, client);
+	FILE *fp = fopen(full_path.c_str(), "rb");
+	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
+	if (!fp)
+		send_error_page(404, client);
 	else
 	{
-		char *dir_list;
-		std::string full_path = find_path_in_root(path, client);
-		FILE *fp = fopen(full_path.c_str(), "rb");
-		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-		if (!fp)
-			send_error_page(404, client);
+		if (full_path.back() == '/' && client.server->autoindex)
+			get_autoindex_page(client, path);
 		else
 		{
-			if (full_path.back() == '/' && client.server->autoindex)
-				get_autoindex_page(client, path);
-			else
+			fseek(fp, 0L, SEEK_END);
+			size_t length = ftell(fp);
+			rewind(fp);
+			const char *type = find_content_type(full_path.c_str());
+
+			Response response(status_info[200]);
+			response.append_header("Connection", "close");
+			response.append_header("Content-Length", std::to_string(length));
+			response.append_header("Content-Type", type);
+
+			std::string header = response.make_header();
+			send(client.get_socket(), header.c_str(), header.size(), 0);
+
+			char buffer[BSIZE];
+			int r = fread(buffer, 1, BSIZE, fp);
+			while (r)
 			{
-				fseek(fp, 0L, SEEK_END);
-				size_t length = ftell(fp);
-				rewind(fp);
-				const char *type = find_content_type(full_path.c_str());
-
-				Response response(status_info[200]);
-				response.append_header("Connection", "close");
-				response.append_header("Content-Length", std::to_string(length));
-				response.append_header("Content-Type", type);
-
-				std::string header = response.make_header();
-				send(client.get_socket(), header.c_str(), header.size(), 0);
-
-				char buffer[BSIZE];
-				int r = fread(buffer, 1, BSIZE, fp);
-				while (r)
-				{
-					send(client.get_socket(), buffer, r, 0);
-					r = fread(buffer, 1, BSIZE, fp);
-				}
+				send(client.get_socket(), buffer, r, 0);
+				r = fread(buffer, 1, BSIZE, fp);
 			}
 		}
-		fclose(fp);
 	}
+	fclose(fp);
 }
 
 void ServerManager::post_method(Client &client, Request &request)
@@ -319,20 +316,10 @@ void ServerManager::post_method(Client &client, Request &request)
 	fwrite(request.body.c_str(), request.body.size(), 1, fp);
 	fclose(fp);
 	
-	if (request.path == "/board/content")
-	{
-		Response response(status_info[302]);
-		response.append_header("Location", request.headers["Referer"]);
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
-	else
-	{
-		Response response(status_info[201]);
-		response.append_header("Connection", "close");
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
+	Response response(status_info[201]);
+	response.append_header("Connection", "close");
+	std::string header = response.make_header();
+	send(client.get_socket(), header.c_str(), header.size(), 0);
 }
 
 void ServerManager::delete_method(Client &client, std::string path)
@@ -356,42 +343,6 @@ void ServerManager::delete_method(Client &client, std::string path)
 
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
-}
-
-void ServerManager::get_board_content(Client &client)
-{
-	std::string list;
-	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" /><title>webserv</title></head><body><h1>webserv</h1>";
-	result += make_content_list();
-	result += "</body></html>";
-
-	Response response(status_info[200]);
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(result.length()));
-	response.append_header("Content-Type", "text/html");
-
-	std::string header = response.make_header();
-	send(client.get_socket(), header.c_str(), header.size(), 0);
-	send(client.get_socket(), result.c_str(), result.length(), 0);
-}
-
-std::string ServerManager::make_content_list()
-{
-	std::string path = "www/html/contents/";
-	DIR *dir;
-	struct dirent *ent;
-	dir = opendir("www/html/contents/");
-
-	std::string result = "<ul>";
-	while ((ent = readdir(dir)) != NULL)
-	{
-		if ((std::string)ent->d_name == "." || (std::string)ent->d_name == "..")
-			continue;
-		result += "<li><a href=\"/contents/" + (std::string)ent->d_name + "\">" 
-			+ (std::string)ent->d_name + "</a></li>";
-	}
-	result += "</ul>";
-	return result;
 }
 
 /*
