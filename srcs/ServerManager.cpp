@@ -161,7 +161,7 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-bool handleCGI(Request *request, Location *loc)
+bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
@@ -214,13 +214,15 @@ void ServerManager::treat_request()
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 
-				Location* loc = clients[i].server->currLocation(req.get_path());
+				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				if (!is_allowed_method(*loc, req.method)) {
 					send_405_error_page(405, clients[i], *loc);
 					continue;
 				}
+
 				std::cout << "Request: " << req;
-				if (handleCGI(&req, loc)) {
+				if (loc && handle_CGI(&req, loc))
+				{
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
@@ -291,6 +293,7 @@ int	ServerManager::is_allowed_method(Location &loc, std::string method)
 void ServerManager::get_method(Client &client, std::string path)
 {
 	std::cout << "GET method\n";
+	std::cout << "path: " << path << "\n";
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
@@ -314,45 +317,41 @@ void ServerManager::get_method(Client &client, std::string path)
 		}
 	}
 
-	if (path == "/board") path = "/board.html";
-	if (path == "/board/content") get_board_content(client);
+	char *dir_list;
+	std::string full_path = find_path_in_root(path, client);
+	FILE *fp = fopen(full_path.c_str(), "rb");
+	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
+	if (!fp)
+		send_error_page(404, client);
 	else
 	{
-		char *dir_list;
-		std::string full_path = find_path_in_root(path, client);
-		FILE *fp = fopen(full_path.c_str(), "rb");
-		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-		if (!fp) send_error_page(404, client);
+		if (full_path.back() == '/' && client.server->autoindex)
+			get_autoindex_page(client, path);
 		else
 		{
-			if (full_path.back() == '/' && client.server->autoindex)
-				get_autoindex_page(client, path);
-			else
+			fseek(fp, 0L, SEEK_END);
+			size_t length = ftell(fp);
+			rewind(fp);
+			const char *type = find_content_type(full_path.c_str());
+
+			Response response(status_info[200]);
+			response.append_header("Connection", "close");
+			response.append_header("Content-Length", std::to_string(length));
+			response.append_header("Content-Type", type);
+
+			std::string header = response.make_header();
+			send(client.get_socket(), header.c_str(), header.size(), 0);
+
+			char buffer[BSIZE];
+			int r = fread(buffer, 1, BSIZE, fp);
+			while (r)
 			{
-				fseek(fp, 0L, SEEK_END);
-				size_t length = ftell(fp);
-				rewind(fp);
-				const char *type = find_content_type(full_path.c_str());
-
-				Response response(status_info[200]);
-				response.append_header("Connection", "close");
-				response.append_header("Content-Length", std::to_string(length));
-				response.append_header("Content-Type", type);
-
-				std::string header = response.make_header();
-				send(client.get_socket(), header.c_str(), header.size(), 0);
-
-				char buffer[BSIZE];
-				int r = fread(buffer, 1, BSIZE, fp);
-				while (r)
-				{
-					send(client.get_socket(), buffer, r, 0);
-					r = fread(buffer, 1, BSIZE, fp);
-				}
+				send(client.get_socket(), buffer, r, 0);
+				r = fread(buffer, 1, BSIZE, fp);
 			}
 		}
-		fclose(fp);
 	}
+	fclose(fp);
 }
 
 void ServerManager::post_method(Client &client, Request &request)
@@ -364,42 +363,32 @@ void ServerManager::post_method(Client &client, Request &request)
 		return;
 	}
 
-	std::string title, content;
-	int start = request.body.find("title=") + 6;
-	int end = request.body.find("&", start);
-	title = request.body.substr(start, end - start);
-	start = request.body.find("content=", end) + 8;
-	content = request.body.substr(start, request.body.length() - start);
+	std::string full_path = find_path_in_root(request.path, client);
 
-	std::string root_path = client.get_root_path(request.path);
-	FILE *fp = fopen((root_path + "/" + title).c_str(), "w");
-	if (!fp)
+	size_t index = full_path.find_last_of('/');
+	if (index == std::string::npos)
 	{
-		system(("mkdir -p " + client.get_root_path(request.path)).c_str());
-		fp = fopen((root_path + "/" + title).c_str(), "w");
+		send_error_page(500, client);
+		return;
 	}
+	std::string file_name = full_path.substr(index + 1);
+	std::string folder_path = full_path.substr(0, index);
+
+	system(("mkdir -p " + client.get_root_path(request.path)).c_str());
+	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
 		send_error_page(500, client);
 		return;
 	}
-	fwrite(content.c_str(), content.size(), 1, fp);
+
+	fwrite(request.body.c_str(), request.body.size(), 1, fp);
 	fclose(fp);
 	
-	if (request.path == "/board/content")
-	{
-		Response response(status_info[302]);
-		response.append_header("Location", request.headers["Referer"]);
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
-	else
-	{
-		Response response(status_info[201]);
-		response.append_header("Connection", "close");
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
+	Response response(status_info[201]);
+	response.append_header("Connection", "close");
+	std::string header = response.make_header();
+	send(client.get_socket(), header.c_str(), header.size(), 0);
 }
 
 void ServerManager::delete_method(Client &client, std::string path)
@@ -417,48 +406,12 @@ void ServerManager::delete_method(Client &client, std::string path)
 	}
 	fclose(fp);
 
-	// std::remove(full_path.c_str());
+	std::remove(full_path.c_str());
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
 
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
-}
-
-void ServerManager::get_board_content(Client &client)
-{
-	std::string list;
-	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" /><title>webserv</title></head><body><h1>webserv</h1>";
-	result += make_content_list();
-	result += "</body></html>";
-
-	Response response(status_info[200]);
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(result.length()));
-	response.append_header("Content-Type", "text/html");
-
-	std::string header = response.make_header();
-	send(client.get_socket(), header.c_str(), header.size(), 0);
-	send(client.get_socket(), result.c_str(), result.length(), 0);
-}
-
-std::string ServerManager::make_content_list()
-{
-	std::string path = "www/html/contents/";
-	DIR *dir;
-	struct dirent *ent;
-	dir = opendir("www/html/contents/");
-
-	std::string result = "<ul>";
-	while ((ent = readdir(dir)) != NULL)
-	{
-		if ((std::string)ent->d_name == "." || (std::string)ent->d_name == "..")
-			continue;
-		result += "<li><a href=\"/contents/" + (std::string)ent->d_name + "\">" 
-			+ (std::string)ent->d_name + "</a></li>";
-	}
-	result += "</ul>";
-	return result;
 }
 
 /*
@@ -486,9 +439,16 @@ const char *ServerManager::find_content_type(const char *path)
 
 std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
-	std::string full_path;
+	std::string full_path = "";
+	std::string location;
 	full_path.append(client.get_root_path(path));
-	full_path.append(path);
+	Location *loc = client.server->get_cur_location(path);
+	if (loc)
+		location = loc->path;
+	else
+		location = "";
+	std::string str = path.substr(location.length());
+	full_path.append(str);
 	return full_path;
 }
 

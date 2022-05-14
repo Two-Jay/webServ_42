@@ -104,21 +104,42 @@ MethodType Server::s_to_methodtype(std::string str)
 	return INVALID;
 }
 
-Location* Server::currLocation(std::string request_uri) const {
+Location* Server::get_cur_location(std::string request_uri) const 
+{
 	if (this->locations.size() == 0)
 		return NULL;
 
 	std::vector<Location>::const_iterator res = this->locations.begin();
 	unsigned long	longest = 0;
+	bool is_in_root = true;
 
 	for (std::vector<Location>::const_iterator it = this->locations.begin(); \
 	it != this->locations.end(); it++) {
-		std::string path = it->path;
-		if (request_uri.compare(0, path.length(), path) == 0 \
-		&& longest < path.length()) {
-			longest = path.length();
+		std::string location_path = it->path;
+		if (is_in_location(location_path, request_uri) && (longest < location_path.length()))
+		{
+			is_in_root = false;
+			longest = location_path.length();
 			res = it;
 		}
 	}
+	if (is_in_root)
+		return NULL;
 	return const_cast<Location*>(&*res);
+}
+
+bool Server::is_in_location(std::string location_path, std::string request_uri) const
+{
+	if (request_uri.compare(0, location_path.length(), location_path) != 0)
+		return false;
+	if (request_uri[location_path.length()])
+	{
+		if (request_uri[location_path.length()] == '/' \
+		|| request_uri[location_path.length()] == '?')
+			return true;
+		else
+			return false;
+	}
+	else
+		return true;
 }

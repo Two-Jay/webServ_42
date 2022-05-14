@@ -26,26 +26,27 @@ public:
 	ServerManager(std::vector<Server> servers);
 	~ServerManager();
 
-	void create_servers();
 	void accept_sockets();
-	void close_servers();
-	void print_servers_info();
-
 	void wait_on_clients();
 	void drop_client(Client client);
 
+	void create_servers();
+	void close_servers();
+
 	void treat_request();
+	void print_servers_info();
+
+private:
 	void send_error_page(int code, Client &Client);
 	void send_405_error_page(int code, Client &Client, Location &loc);
 	int	is_allowed_method(Location &location, std::string method);
+	bool handle_CGI(Request *request, Location *loc);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);
 	void delete_method(Client &client, std::string path);
 
-	void get_board_content(Client &client);
 	void get_autoindex_page(Client &client, std::string path);
-	std::string make_content_list();
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);
