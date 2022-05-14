@@ -36,6 +36,7 @@ public:
 
 	void treat_request();
 	void send_error_page(int code, Client &Client);
+	bool is_response_timeout(Client& Client);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);
