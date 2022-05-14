@@ -296,7 +296,6 @@ void ServerManager::post_method(Client &client, Request &request)
 	std::cout << "POST method\n";
 
 	std::string full_path = find_path_in_root(request.path, client);
-
 	size_t index = full_path.find_last_of("/");
 	if (index == std::string::npos)
 	{
@@ -306,7 +305,6 @@ void ServerManager::post_method(Client &client, Request &request)
 	std::string file_name = full_path.substr(index + 1);
 	std::string folder_path = full_path.substr(0, index);
 
-	std::cout << "path: " << folder_path << ", name: " << file_name << std::endl;
 	std::string command = "mkdir -p " + folder_path;
 	system(command.c_str());
 	FILE *fp = fopen(full_path.c_str(), "w");
