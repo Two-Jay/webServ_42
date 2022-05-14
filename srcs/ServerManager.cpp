@@ -122,16 +122,12 @@ void ServerManager::wait_on_clients()
 		if (errno == EINVAL) 
 		{
 			for (int i = 0; i < clients.size(); i++)
-			{
 				send_error_page(429, clients[i]);
-			}	
 		}
 		else 
 		{
 			for (int i = 0; i < clients.size(); i++)
-			{
 				send_error_page(500, clients[i]);
-			}
 		}
 		exit(1);
 	}
@@ -200,13 +196,15 @@ void ServerManager::treat_request()
 			else
 			{
 				Request req = Request(clients[i].get_socket());
-				if (!req.parsing(clients[i].request)) {
+				if (!req.parsing(clients[i].request))
+				{
 					send_error_page(505, clients[i]);
 					continue;
 				}
 				
 				if (req.headers["Content-Length"] != "" && 
-				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit) {
+				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
+				{
 					send_error_page(413, clients[i]);
 					continue;
 				}
@@ -215,7 +213,8 @@ void ServerManager::treat_request()
 				clients[i].request[clients[i].get_received_size()] = 0;
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
-				if (!is_allowed_method(*loc, req.method)) {
+				if (!is_allowed_method(*loc, req.method))
+				{
 					send_405_error_page(405, clients[i], *loc);
 					continue;
 				}
@@ -261,7 +260,8 @@ void ServerManager::send_405_error_page(int code, Client &client, Location &loc)
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
-	for (int i = 0; i < loc.allow_methods.size(); i++) {
+	for (int i = 0; i < loc.allow_methods.size(); i++)
+	{
 		allowed_method += loc.methodtype_to_s(loc.allow_methods[i]);
 		if (i < loc.allow_methods.size() - 1)
 			allowed_method += ", ";
@@ -358,7 +358,8 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	if (request.headers.find("Content-Length") == request.headers.end()) {
+	if (request.headers.find("Content-Length") == request.headers.end())
+	{
 		send_error_page(411, client);
 		return;
 	}
