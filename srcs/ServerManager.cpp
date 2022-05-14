@@ -187,7 +187,7 @@ void ServerManager::treat_request()
 				clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 
-				Location* loc = clients[i].server->currLocation(req.get_path());
+				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::cout << "Request: " << req;
 				if (handleCGI(&req, loc)) {
 					CgiHandler cgi(req);
@@ -297,26 +297,26 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	std::string title, content;
-	int start = request.body.find("title=") + 6;
-	int end = request.body.find("&", start);
-	title = request.body.substr(start, end - start);
-	start = request.body.find("content=", end) + 8;
-	content = request.body.substr(start, request.body.length() - start);
+	std::string full_path = find_path_in_root(request.path, client);
 
-	std::string root_path = client.get_root_path(request.path);
-	FILE *fp = fopen((root_path + "/" + title).c_str(), "w");
-	if (!fp)
+	size_t index = full_path.find_last_of('/');
+	if (index == std::string::npos)
 	{
-		system(("mkdir -p " + client.get_root_path(request.path)).c_str());
-		fp = fopen((root_path + "/" + title).c_str(), "w");
+		send_error_page(500, client);
+		return;
 	}
+	std::string file_name = full_path.substr(index + 1);
+	std::string folder_path = full_path.substr(0, index);
+
+	system(("mkdir -p " + client.get_root_path(request.path)).c_str());
+	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
 		send_error_page(500, client);
 		return;
 	}
-	fwrite(content.c_str(), content.size(), 1, fp);
+
+	fwrite(request.body.c_str(), request.body.size(), 1, fp);
 	fclose(fp);
 	
 	if (request.path == "/board/content")
@@ -422,7 +422,7 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 	// 수정 필요
 	std::string full_path;
 	full_path.append(client.get_root_path(path));
-	std::string location = client.server->currLocation(path)->path;
+	std::string location = client.server->get_cur_location(path)->path;
 	std::string str = path.substr(location.length(), std::string::npos);
 	full_path.append(str);
 	return full_path;
