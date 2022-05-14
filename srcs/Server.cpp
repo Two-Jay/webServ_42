@@ -104,7 +104,8 @@ MethodType Server::s_to_methodtype(std::string str)
 	return INVALID;
 }
 
-Location* Server::currLocation(std::string request_uri) const {
+Location* Server::get_cur_location(std::string request_uri) const 
+{
 	if (this->locations.size() == 0)
 		return NULL;
 
