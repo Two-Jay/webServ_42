@@ -228,7 +228,7 @@ void ServerManager::send_error_page(int code, Client &client)
 
 void ServerManager::get_method(Client &client, std::string path)
 {
-	std::cout << "GET method\n";
+	std::cout << "GET method=" << std::endl;
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
@@ -252,7 +252,6 @@ void ServerManager::get_method(Client &client, std::string path)
 		}
 	}
 
-	if (path == "/board") path = "/board.html";
 	if (path == "/board/content") get_board_content(client);
 	else
 	{
@@ -260,7 +259,8 @@ void ServerManager::get_method(Client &client, std::string path)
 		std::string full_path = find_path_in_root(path, client);
 		FILE *fp = fopen(full_path.c_str(), "rb");
 		std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
-		if (!fp) send_error_page(404, client);
+		if (!fp)
+			send_error_page(404, client);
 		else
 		{
 			if (full_path.back() == '/' && client.server->autoindex)
@@ -419,11 +419,10 @@ const char *ServerManager::find_content_type(const char *path)
 
 std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
-	// 수정 필요
-	std::string full_path;
+	std::string full_path = "";
 	full_path.append(client.get_root_path(path));
 	std::string location = client.server->get_cur_location(path)->path;
-	std::string str = path.substr(location.length(), std::string::npos);
+	std::string str = path.substr(location.length());
 	full_path.append(str);
 	return full_path;
 }
