@@ -5,10 +5,10 @@ Server::Server(/* args */)
 	client_body_limit = 1024;
 
 	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 100000;
-	recv_timeout = tv;
-	send_timeout = tv;
+	tv.tv_sec = 60;
+	tv.tv_usec = 0;
+	if (recv_timeout.tv_sec != 0) recv_timeout = tv;
+	if (send_timeout.tv_sec != 0) send_timeout = tv;
 	
 	autoindex = true;
 	host = "";
