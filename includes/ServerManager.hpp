@@ -39,6 +39,7 @@ public:
 private:
 	void send_error_page(int code, Client &Client);
 	bool handle_CGI(Request *request, Location *loc);
+	bool is_response_timeout(Client& client);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);
