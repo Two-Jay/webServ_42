@@ -189,11 +189,13 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->currLocation(req.get_path());
 				std::cout << "Request: " << req;
-				if (handleCGI(&req, loc)) {
+				std::cout << "1\n";
+				if (loc && handleCGI(&req, loc)) {
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
 				}
+				std::cout << "2\n";
 				// body size 검사 해야함
 				if (req.method == "GET")
 					get_method(clients[i], req.path);
@@ -229,6 +231,7 @@ void ServerManager::send_error_page(int code, Client &client)
 void ServerManager::get_method(Client &client, std::string path)
 {
 	std::cout << "GET method\n";
+	std::cout << "path: " << path << "\n";
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
@@ -421,9 +424,22 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 {
 	// 수정 필요
 	std::string full_path;
+	std::string location;
 	full_path.append(client.get_root_path(path));
-	std::string location = client.server->currLocation(path)->path;
-	std::string str = path.substr(location.length(), std::string::npos);
+	std::cout << "fullpath: " << full_path << "\n";
+	Location *loc = client.server->currLocation(path);
+	if (loc)
+		location = loc->path;
+	else
+		location = "";
+	std::cout << "location: " << location << "\n";
+	// if (path == location)
+	// {
+	// 	full_path.append("/");
+	// 	return full_path;
+	// }
+	std::string str = path.substr(location.length());
+	std::cout << "str: " << str << "\n";
 	full_path.append(str);
 	return full_path;
 }

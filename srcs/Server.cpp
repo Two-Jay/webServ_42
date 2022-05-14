@@ -110,15 +110,19 @@ Location* Server::currLocation(std::string request_uri) const {
 
 	std::vector<Location>::const_iterator res = this->locations.begin();
 	unsigned long	longest = 0;
+	bool check = false;
 
 	for (std::vector<Location>::const_iterator it = this->locations.begin(); \
 	it != this->locations.end(); it++) {
 		std::string path = it->path;
 		if (request_uri.compare(0, path.length(), path) == 0 \
 		&& longest < path.length()) {
+			check = true;
 			longest = path.length();
 			res = it;
 		}
 	}
+	if (!check)
+		return NULL;
 	return const_cast<Location*>(&*res);
 }
