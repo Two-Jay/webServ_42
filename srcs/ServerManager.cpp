@@ -144,7 +144,7 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
-bool handleCGI(Request *request, Location *loc)
+bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
@@ -189,8 +189,8 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::cout << "Request: " << req;
-				std::cout << "1\n";
-				if (loc && handleCGI(&req, loc)) {
+				if (loc && handle_CGI(&req, loc))
+				{
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
@@ -288,8 +288,8 @@ void ServerManager::get_method(Client &client, std::string path)
 				r = fread(buffer, 1, BSIZE, fp);
 			}
 		}
-		fclose(fp);
 	}
+	fclose(fp);
 }
 
 void ServerManager::post_method(Client &client, Request &request)
@@ -318,20 +318,10 @@ void ServerManager::post_method(Client &client, Request &request)
 	fwrite(request.body.c_str(), request.body.size(), 1, fp);
 	fclose(fp);
 	
-	if (request.path == "/board/content")
-	{
-		Response response(status_info[302]);
-		response.append_header("Location", request.headers["Referer"]);
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
-	else
-	{
-		Response response(status_info[201]);
-		response.append_header("Connection", "close");
-		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
-	}
+	Response response(status_info[201]);
+	response.append_header("Connection", "close");
+	std::string header = response.make_header();
+	send(client.get_socket(), header.c_str(), header.size(), 0);
 }
 
 void ServerManager::delete_method(Client &client, std::string path)
