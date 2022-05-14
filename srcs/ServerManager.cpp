@@ -96,6 +96,7 @@ void ServerManager::print_servers_info()
 void ServerManager::wait_on_clients()
 {
 	int max = -1;
+	int recv;
 	fd_set reads;
 
 	FD_ZERO(&reads);
@@ -115,7 +116,6 @@ void ServerManager::wait_on_clients()
 		if (clients[i].get_socket() > max)
 			max = clients[i].get_socket();
 	}
-
 	if (select(max + 1, &reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
@@ -131,7 +131,6 @@ void ServerManager::wait_on_clients()
 		}
 		exit(1);
 	}
-    //변화가 생긴 소켓
 	this->reads = reads;
 }
 
@@ -180,7 +179,6 @@ void ServerManager::treat_request()
 				drop_client(clients[i]);
 				continue;
 			}
-			
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
@@ -230,7 +228,12 @@ void ServerManager::treat_request()
 					cgi.cgi_exec(req, *loc);
 					return ;
 				}
-				if (req.method == "GET")
+				// body size 검사 해야함
+				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
+				// Content_length 체크해서.
+				if (is_response_timeout(clients[i]) == true)
+					send_error_page(408, clients[i]);
+				else if (req.method == "GET")
 					get_method(clients[i], req.path);
 				else if (req.method == "POST")
 					post_method(clients[i], req);
@@ -240,6 +243,15 @@ void ServerManager::treat_request()
 			}
 		}
 	}
+}
+
+bool ServerManager::is_response_timeout(Client& client) {
+	static timeval tv;
+	
+	gettimeofday(&tv, NULL);
+	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
+	client.set_last_time_sec(tv);
+	return false;
 }
 
 void ServerManager::send_error_page(int code, Client &client)

@@ -41,6 +41,7 @@ private:
 	void send_405_error_page(int code, Client &Client, Location &loc);
 	int	is_allowed_method(Location &location, std::string method);
 	bool handle_CGI(Request *request, Location *loc);
+	bool is_response_timeout(Client& client);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);
