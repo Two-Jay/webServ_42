@@ -196,7 +196,7 @@ void ServerManager::treat_request()
 				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
 				// Content_length 체크해서.
 
-				if (is_response_timeout(clients[i]) == false)
+				if (is_response_timeout(clients[i]) == true)
 					send_error_page(408, clients[i]);
 				else if (req.method == "GET")
 					get_method(clients[i], req.path);
@@ -216,9 +216,9 @@ bool ServerManager::is_response_timeout(Client& client) {
 	static timeval tv;
 	
 	gettimeofday(&tv, NULL);
-	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return false;
+	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
 	client.set_last_time_sec(tv);
-	return true;
+	return false;
 }
 
 void ServerManager::send_error_page(int code, Client &client)
