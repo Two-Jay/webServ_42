@@ -3,8 +3,6 @@
 ServerManager::ServerManager(std::vector<Server> servers)
 {
 	this->servers = servers;
-	this->timeout.tv_sec = 60;
-	this->timeout.tv_usec = 0;
 
 	status_info.insert(std::make_pair(200, "200 OK"));
 	status_info.insert(std::make_pair(201, "201 Created"));
@@ -97,7 +95,6 @@ void ServerManager::wait_on_clients()
 	int max = -1;
 	int recv;
 	fd_set reads;
-	timeval time;
 
 	FD_ZERO(&reads);
 	for (int i = 0; i < servers.size(); i++)
@@ -115,32 +112,14 @@ void ServerManager::wait_on_clients()
 		FD_SET(clients[i].get_socket(), &reads);
 		if (clients[i].get_socket() > max)
 			max = clients[i].get_socket();
+	};
+	if (select(max + 1, &reads, 0, 0, 0) < 0)
+	{
+		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+		exit(1);
 	}
-	// timeout tv 설정 이후 select의 5번째 매개변수로 설정
-	// timeout 체크에 쓰이는 timeval 객체의 갱신을 위해 select을 반복문으로 감쌈.
-	// ? : server 마다 timeout 시간이 다를 수 있나?
-	// ! : 만약 다를 수 있다면, 어떻게 개별적으로 servers[i]의 listen_socker[i]에 대한 timeout 상황을 측정하나?
-	while (1) {
-		time.tv_sec = this->timeout.tv_sec;
-		time.tv_usec = this->timeout.tv_usec;
-		recv = select(max + 1, &reads, 0, 0, &time);
-		if (recv < 0)
-		{
-			fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-			exit(1);
-		}
-		if (recv == 0)
-		{
-			fprintf(stderr, "[ERROR] timeout. (%d)\n", errno);
-			continue;
-		}
-		//변화가 생긴 소켓
-		this->reads = reads;
-		// 여기 안에서 this->reads에 reads 건네어 주고,
-		// this->accept() && treat_request() 를 실행하면 괜찮지 않을까... 싶은데.
-		// 분리한 특별한 이유가 있는지 팀원들에게 물어보자.
+	this->reads = reads;
 	}
-
 }
 
 void ServerManager::drop_client(Client client)
