@@ -7,8 +7,10 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(200, "200 OK"));
 	status_info.insert(std::make_pair(201, "201 Created"));
 	status_info.insert(std::make_pair(204, "204 No Content"));
+	status_info.insert(std::make_pair(301, "300 Multiple Choices"));
 	status_info.insert(std::make_pair(301, "301 Moved Permanently"));
 	status_info.insert(std::make_pair(302, "302 Found"));
+	status_info.insert(std::make_pair(303, "303 See Other"));
 	status_info.insert(std::make_pair(307, "307 Temporary Redirect"));
 	status_info.insert(std::make_pair(400, "400 Bad Request"));
 	status_info.insert(std::make_pair(401, "401 Unauthorized"));
