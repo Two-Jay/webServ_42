@@ -7,7 +7,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(200, "200 OK"));
 	status_info.insert(std::make_pair(201, "201 Created"));
 	status_info.insert(std::make_pair(204, "204 No Content"));
-	status_info.insert(std::make_pair(301, "300 Multiple Choices"));
+	status_info.insert(std::make_pair(300, "300 Multiple Choices"));
 	status_info.insert(std::make_pair(301, "301 Moved Permanently"));
 	status_info.insert(std::make_pair(302, "302 Found"));
 	status_info.insert(std::make_pair(303, "303 See Other"));
