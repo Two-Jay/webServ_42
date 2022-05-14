@@ -365,8 +365,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	}
 
 	std::string full_path = find_path_in_root(request.path, client);
-
-	size_t index = full_path.find_last_of('/');
+	size_t index = full_path.find_last_of("/");
 	if (index == std::string::npos)
 	{
 		send_error_page(500, client);
@@ -375,7 +374,8 @@ void ServerManager::post_method(Client &client, Request &request)
 	std::string file_name = full_path.substr(index + 1);
 	std::string folder_path = full_path.substr(0, index);
 
-	system(("mkdir -p " + client.get_root_path(request.path)).c_str());
+	std::string command = "mkdir -p " + folder_path;
+	system(command.c_str());
 	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
