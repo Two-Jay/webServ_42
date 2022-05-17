@@ -18,16 +18,23 @@ std::string Request::get_port() {
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
-bool Request::parsing(std::string request)
+int Request::parsing(std::string request)
 {
+	int i;
+	int j;
+
 	std::cout << "> request parsing" << std::endl;
-	int i = request.find_first_of(" ", 0);
+	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
-	int j = request.find_first_of(" ", i + 1);
+	// nginx에서 curl로 보냈을 때 리퀘스트 메소드가 모두 영문대문자가 아니면 400 에러반환함
+	if (is_not_method(method))
+		return 400;
+	if ((j = request.find_first_of(" ", i + 1)) == std::string::npos)
+		return 400;
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
 	if (headers["HTTP"] != "HTTP/1.1")
-		return false; 
+		return 505;
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())
 	{
@@ -41,7 +48,7 @@ bool Request::parsing(std::string request)
 		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end + 2 - deli - 3);
 		i = end + 2;
 	}
-	return true;
+	return 0;
 }
 
 std::string Request::get_path()
@@ -58,4 +65,15 @@ std::string Request::get_query()
 	if (i == std::string::npos)
 		return "";
 	return path.substr(i, path.size() - i);
+}
+
+bool Request::is_not_method(const std::string method) {
+	if(method.empty())
+		return true;
+	for(int i = 0; i < method.length(); i++)
+	{
+		if(!isupper(static_cast<unsigned char>(method[i])))
+			return true;
+	}
+	return false;
 }

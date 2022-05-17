@@ -195,9 +195,10 @@ void ServerManager::treat_request()
 			else
 			{
 				Request req = Request(clients[i].get_socket());
-				if (!req.parsing(clients[i].request))
+				int error_code;
+				if ((error_code = req.parsing(clients[i].request)))
 				{
-					send_error_page(505, clients[i]);
+					send_error_page(error_code, clients[i]);
 					drop_client(clients[i]);
 					continue;
 				}

@@ -17,11 +17,12 @@ public:
 	Request(int client_fd);
 	~Request();
 
-	bool parsing(std::string request);
+	int parsing(std::string request);
 	std::string get_path(); // url after program name and a slash
 	std::string get_query(); // query string : after ?
 	int get_client_fd();
 	std::string get_port();
+	bool is_not_method(const std::string method);
 	friend std::ostream &operator<<(std::ostream &out, const Request &req)
 	{
 		out << "\nmethod: " << req.method << "\npath: " << req.path << "\nheaders:\n"
