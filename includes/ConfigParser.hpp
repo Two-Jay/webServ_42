@@ -7,6 +7,7 @@
 
 #define SUCCESS 1
 #define FAILED -1
+#define EMPTY -2
 
 class ConfigParser
 {
