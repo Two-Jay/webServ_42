@@ -54,3 +54,18 @@ std::string get_ip(int client_fd) {
 	strncpy(ip, inet_ntoa(client_addr.sin_addr), 16);
 	return (ip);
 }
+
+
+// Mon, 16 May 2022 05:47:10 GMT
+std::string get_current_date_GMT(void) {
+	time_t rawtime;
+	struct tm *pm;
+	char format[29];
+	std::string ret;
+
+	time(&rawtime);
+	pm = gmtime(&rawtime);
+	strftime(format, 29, "%a, %d %b %G %X GMT", pm);
+	ret = format;
+	return ret;
+}

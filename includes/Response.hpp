@@ -21,6 +21,8 @@ public:
 	int get_body_size();
 
 	void make_error_body();
+	void make_redirection_body();
+	void make_redirection_body(std::string url);
 	std::string make_header();
 	std::string serialize();
 };

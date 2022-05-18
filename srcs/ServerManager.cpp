@@ -7,8 +7,10 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(200, "200 OK"));
 	status_info.insert(std::make_pair(201, "201 Created"));
 	status_info.insert(std::make_pair(204, "204 No Content"));
+	status_info.insert(std::make_pair(300, "300 Multiple Choices"));
 	status_info.insert(std::make_pair(301, "301 Moved Permanently"));
 	status_info.insert(std::make_pair(302, "302 Found"));
+	status_info.insert(std::make_pair(303, "303 See Other"));
 	status_info.insert(std::make_pair(307, "307 Temporary Redirect"));
 	status_info.insert(std::make_pair(400, "400 Bad Request"));
 	status_info.insert(std::make_pair(401, "401 Unauthorized"));
@@ -235,7 +237,9 @@ void ServerManager::treat_request()
 				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
 				// Content_length 체크해서.
 				if (is_response_timeout(clients[i]) == true)
-				 	send_error_page(408, clients[i]);
+					send_error_page(408, clients[i]);
+				if (clients[i].server->redirect_status != -1)
+					send_redirection(clients[i], req.method);
 				else if (req.method == "GET")
 					get_method(clients[i], req.path);
 				else if (req.method == "POST")
@@ -255,6 +259,26 @@ bool ServerManager::is_response_timeout(Client& client) {
 	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
 	client.set_last_time_sec(tv);
 	return false;
+}
+
+void ServerManager::send_redirection(Client &client, std::string request_method)
+{
+	std::cout << ">> send redirection response" << std::endl;
+	Response response(status_info[client.server->redirect_status]);
+	if (client.server->redirect_status == 300)
+		response.make_redirection_body(client.server->redirect_url);
+	else
+		response.make_redirection_body();
+	response.append_header("Server", client.server->server_name);
+	response.append_header("Date", get_current_date_GMT());
+	response.append_header("Content-Type", "text/html");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Connection", "keep-alive");
+	response.append_header("Location", client.server->redirect_url);
+	response.make_header();
+
+	std::string result = response.serialize();
+	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
 void ServerManager::send_error_page(int code, Client &client)

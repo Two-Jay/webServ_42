@@ -48,6 +48,31 @@ void Response::make_error_body()
 	body = result;
 }
 
+void Response::make_redirection_body()
+{
+	std::string result;
+
+	result.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>webserv</title></head>");
+	result.append("<body>");
+	result.append("<h1>" + status.substr(0, 3) + "</h1>");
+	result.append("<h3>" + status.substr(4, status.size()) + "</h3>");
+	result.append("<p>Click <a href=\"/\">here</a> to return home.</p>");
+	result.append("</body></html>");
+
+	body.clear();
+	body = result;
+}
+
+void Response::make_redirection_body(std::string url)
+{
+	std::string result;
+
+	result.append(url);
+
+	body.clear();
+	body = result;
+}
+
 std::string Response::serialize()
 {
 	std::string result;
