@@ -38,6 +38,8 @@ int Request::parsing(std::string request)
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())
 	{
+		if (request[i] == '\r' && request[i + 1] == '\0')
+			break;
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
 			this->body = request.substr(i + 2, request.size());
@@ -46,6 +48,8 @@ int Request::parsing(std::string request)
 		int deli = request.find_first_of(":", i);
 		int end = request.find_first_of("\r\n", deli);
 		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end + 2 - deli - 3);
+		if (end + 1 == '\0')
+			break;
 		i = end + 2;
 	}
 	return 0;
