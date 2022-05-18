@@ -10,7 +10,7 @@ Server::Server(/* args */)
 	if (recv_timeout.tv_sec != 0) recv_timeout = tv;
 	if (send_timeout.tv_sec != 0) send_timeout = tv;
 	
-	autoindex = true;
+	autoindex = false;
 	host = "";
 	redirect_status = -1;
 }
