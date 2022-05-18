@@ -266,9 +266,9 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	std::cout << ">> send redirection response" << std::endl;
 	Response response(status_info[client.server->redirect_status]);
 	if (client.server->redirect_status == 300)
-		response.make_redirection_body(client.server->redirect_url);
+		response.make_status_body(client.server->redirect_url);
 	else
-		response.make_redirection_body();
+		response.make_status_body();
 	response.append_header("Server", client.server->server_name);
 	response.append_header("Date", get_current_date_GMT());
 	response.append_header("Content-Type", "text/html");
@@ -285,7 +285,7 @@ void ServerManager::send_error_page(int code, Client &client)
 {
 	std::cout << ">> send error page" << std::endl;
 	Response response(status_info[code]);
-	response.make_error_body();
+	response.make_status_body();
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
@@ -299,7 +299,7 @@ void ServerManager::send_405_error_page(int code, Client &client, std::vector<Me
 	std::cout << ">> send error page" << std::endl;
 	std::string allowed_method_list;
 	Response response(status_info[code]);
-	response.make_error_body();
+	response.make_status_body();
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
