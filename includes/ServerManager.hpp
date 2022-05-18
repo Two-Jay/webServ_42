@@ -38,6 +38,9 @@ public:
 
 private:
 	void send_error_page(int code, Client &Client);
+	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
+	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
+	std::string methodtype_to_s(MethodType method);
 	bool handle_CGI(Request *request, Location *loc);
 	bool is_response_timeout(Client& client);
 
