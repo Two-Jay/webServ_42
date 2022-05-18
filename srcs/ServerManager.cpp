@@ -203,7 +203,7 @@ void ServerManager::treat_request()
 					continue;
 				}
 				
-				if (req.headers["Content-Length"] != "" && 
+				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
 					send_error_page(413, clients[i]);
