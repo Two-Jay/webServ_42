@@ -346,6 +346,19 @@ std::string ServerManager::methodtype_to_s(MethodType method) {
 ** http methods
 */
 
+bool is_loc_check(std::string path, Client &client)
+{
+	std::string root = client.server->get_cur_location(path)->path;
+	std::cout << "loc_check\n";
+	std::cout << "path: " << path << ", root: " << root << "\n";
+	if (path == root)
+	{
+		// path.append("/" + root);
+		return true;
+	}
+	return false;
+}
+
 void ServerManager::get_method(Client &client, std::string path)
 {
 	std::cout << "GET method\n";
@@ -372,6 +385,21 @@ void ServerManager::get_method(Client &client, std::string path)
 			}
 		}
 	}
+	else if (is_loc_check(path, client))
+	{
+		std::vector<std::string> loc = client.server->get_cur_location(path)->index;
+		for (int i = 0; i < loc.size();i++)
+		{
+			FILE *fp = fopen((client.server->get_cur_location(path)->root + "/" + loc[i]).c_str(), "rb");
+			if (fp)
+			{
+				fclose(fp);
+				path = "/" + loc[i];
+				break;
+			}
+		}
+	}
+	// std::cout << "path: " << path << "\n";
 
 	char *dir_list;
 	std::string full_path = find_path_in_root(path, client);
