@@ -37,8 +37,11 @@ public:
 	void print_servers_info();
 
 private:
+	void send_error_page(int code, Client &Client);
+	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
 	void send_redirection(Client &client, std::string request_method);
-	void send_error_page(int code, Client &client);
+	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
+	std::string methodtype_to_s(MethodType method);
 	bool handle_CGI(Request *request, Location *loc);
 	bool is_response_timeout(Client& client);
 
