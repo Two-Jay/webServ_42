@@ -53,6 +53,7 @@ std::vector<Server> *ConfigParser::parse()
 Server ConfigParser::parse_server(size_t *i)
 {
 	Server result;
+	size_t value_end;
 
 	size_t pre = content.find_first_not_of(" \t\n", *i);
 	if (pre == std::string::npos || content[pre] != '{')
@@ -83,11 +84,11 @@ Server ConfigParser::parse_server(size_t *i)
 					exit(print_parse_error());
 			if ((cur = content.find_first_of("\n", pre)) == std::string::npos)
 					exit(print_parse_error());
-			std::string value = content.substr(pre, cur - pre);
-			if (set_server_values(&result, key, value) == FAILED)
-			{
+			if ((value_end = check_line_syntax(content.substr(pre, cur - pre))) == FAILED)
 				exit(print_parse_error());
-			}
+			std::string value = content.substr(pre, value_end + 1);
+			if (set_server_values(&result, key, value) == FAILED)
+				exit(print_parse_error());
 		}
 	}
 	return result;
@@ -96,6 +97,7 @@ Server ConfigParser::parse_server(size_t *i)
 Location ConfigParser::parse_location(size_t *i)
 {
 	Location result;
+	size_t value_end;
 
 	size_t pre = content.find_first_not_of(" \t\n", *i);
 	size_t cur = content.find_first_of(" \t\n", pre);
@@ -125,11 +127,11 @@ Location ConfigParser::parse_location(size_t *i)
 					exit(print_parse_error());
 			if ((cur = content.find_first_of("\n", pre)) == std::string::npos)
 					exit(print_parse_error());
-			std::string value = content.substr(pre, cur - pre);
-			if (set_location_values(&result, key, value) == FAILED)
-			{
+			if ((value_end = check_line_syntax(content.substr(pre, cur - pre))) == FAILED)
 				exit(print_parse_error());
-			}
+			std::string value = content.substr(pre, value_end + 1);
+			if (set_location_values(&result, key, value) == FAILED)
+				exit(print_parse_error());
 		}
 	}
 	return result;
@@ -215,7 +217,8 @@ int ConfigParser::set_location_values(Location *location, const std::string key,
 		int i = value.find_first_of(" ");
 		if (i == std::string::npos)
 			return FAILED;
-		location->cgi_info[value.substr(0, i)] = value.substr(i + 1, value.length());
+		int j = value.find_first_not_of(" ", i);
+		location->cgi_info[value.substr(0, i)] = value.substr(j, value.length());
 	}
 	else if (key == "client_body_limit")
 	{
@@ -226,6 +229,21 @@ int ConfigParser::set_location_values(Location *location, const std::string key,
 		return FAILED;
 	}
 	return SUCCESS;
+}
+
+int ConfigParser::check_line_syntax(std::string line)
+{
+	size_t semicol;
+	size_t find;
+
+	semicol = line.find_first_of(";");
+	if (semicol == std::string::npos)
+		return FAILED;
+	find = line.find_first_not_of(" \t\n", semicol + 1, line.length() - semicol - 1);
+	if (find != std::string::npos)
+		return FAILED;
+	find = line.find_last_not_of(" \t", semicol - 1);
+	return find;
 }
 
 int ConfigParser::print_parse_error()
