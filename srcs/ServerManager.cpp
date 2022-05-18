@@ -279,7 +279,6 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Connection", "keep-alive");
 	response.append_header("Location", client.server->redirect_url);
-	response.make_header();
 
 	std::string result = response.serialize();
 	send(client.get_socket(), result.c_str(), result.size(), 0);
