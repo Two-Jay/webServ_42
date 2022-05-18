@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	ConfigParser configParser(config.c_str());
 	std::vector<Server> *servers = configParser.parse();
 	ServerManager manager(*servers);
-	// manager.print_servers_info();
+	manager.print_servers_info();
 
 	manager.create_servers();
 	while (1)
