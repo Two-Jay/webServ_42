@@ -2,7 +2,8 @@
 
 Response::Response(std::string status)
 {
-	this->status = status;
+	this->status_number = status.substr(0, 3);
+	this->status_phrase = status.substr(4, status.size());
 }
 
 Response::~Response()
@@ -23,7 +24,7 @@ std::string Response::make_header()
 {
 	std::string result;
 
-	result.append("HTTP/1.1 " + status + "\r\n");
+	result.append("HTTP/1.1 " + status_number + "\r\n");
 	for (std::map<std::string, std::string>::iterator i = headers.begin(); i != headers.end(); i++)
 	{
 		result.append((*i).first + ": " + (*i).second + "\r\n");	
@@ -33,14 +34,14 @@ std::string Response::make_header()
 	return result;
 }
 
-void Response::make_error_body()
+void Response::make_status_body()
 {
 	std::string result;
 
 	result.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>webserv</title></head>");
 	result.append("<body>");
-	result.append("<h1>" + status.substr(0, 3) + "</h1>");
-	result.append("<h3>" + status.substr(4, status.size()) + "</h3>");
+	result.append("<h1>" + status_number + "</h1>");
+	result.append("<h3>" + status_phrase + "</h3>");
 	result.append("<p>Click <a href=\"/\">here</a> to return home.</p>");
 	result.append("</body></html>");
 	
@@ -48,22 +49,7 @@ void Response::make_error_body()
 	body = result;
 }
 
-void Response::make_redirection_body()
-{
-	std::string result;
-
-	result.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/><title>webserv</title></head>");
-	result.append("<body>");
-	result.append("<h1>" + status.substr(0, 3) + "</h1>");
-	result.append("<h3>" + status.substr(4, status.size()) + "</h3>");
-	result.append("<p>Click <a href=\"/\">here</a> to return home.</p>");
-	result.append("</body></html>");
-
-	body.clear();
-	body = result;
-}
-
-void Response::make_redirection_body(std::string url)
+void Response::make_status_body(std::string url)
 {
 	std::string result;
 
@@ -77,7 +63,7 @@ std::string Response::serialize()
 {
 	std::string result;
 
-	result.append("HTTP/1.1 " + status + "\r\n");
+	result.append("HTTP/1.1 " + status_number + "\r\n");
 	for (std::map<std::string, std::string>::iterator i = headers.begin(); i != headers.end(); i++)
 	{
 		result.append((*i).first + ": " + (*i).second + "\r\n");	
