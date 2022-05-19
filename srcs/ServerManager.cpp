@@ -347,7 +347,10 @@ std::string ServerManager::methodtype_to_s(MethodType method) {
 
 bool is_loc_check(std::string path, Client &client)
 {
-	std::string root = client.server->get_cur_location(path)->path;
+	Location *cur_loc = client.server->get_cur_location(path);
+	if (!cur_loc)
+		return false;
+	std::string root = cur_loc->path;
 	std::cout << "loc_check\n";
 	std::cout << "path: " << path << ", root: " << root << "\n";
 	if (path == root)
@@ -371,6 +374,7 @@ void ServerManager::get_method(Client &client, std::string path)
 
 	if (path == "/")
 	{
+		int flag = false;
 		// index page 중에 하나
 		std::string root = client.get_root_path(path);
 		for (int i = 0; i < client.server->index.size(); i++)
@@ -378,10 +382,18 @@ void ServerManager::get_method(Client &client, std::string path)
 			FILE *fp = fopen((root + "/" + client.server->index[i]).c_str(), "rb");
 			if (fp)
 			{
+				flag = true;
 				fclose(fp);
 				path = "/" + client.server->index[i];
 				break;
 			}
+		}
+		if (client.server->autoindex)
+			flag = true;
+		if (!flag)
+		{
+			send_error_page(403, client);
+			return;
 		}
 	}
 	else if (is_loc_check(path, client))
@@ -401,7 +413,9 @@ void ServerManager::get_method(Client &client, std::string path)
 	// std::cout << "path: " << path << "\n";
 
 	char *dir_list;
+	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
+	lstat(full_path.c_str(), &buf);
 	FILE *fp = fopen(full_path.c_str(), "rb");
 	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
 	if (!fp)
@@ -410,6 +424,11 @@ void ServerManager::get_method(Client &client, std::string path)
 	{
 		if (full_path.back() == '/' && client.server->autoindex)
 			get_autoindex_page(client, path);
+		else if (S_ISDIR(buf.st_mode))
+		{
+			send_error_page(404, client);
+			return;
+		}
 		else
 		{
 			fseek(fp, 0L, SEEK_END);
