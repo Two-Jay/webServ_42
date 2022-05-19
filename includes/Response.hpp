@@ -7,14 +7,14 @@
 class Response
 {
 private:
-	std::string status_number;
-	std::string status_phrase;
 	std::map<std::string, std::string> headers;
 	std::string body;
 
 	Response();
 
 public:
+	std::string status_code;
+	std::string status_phrase;
 	Response(std::string status);
 	~Response();
 
