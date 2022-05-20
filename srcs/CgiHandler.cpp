@@ -39,7 +39,6 @@ int CgiHandler::cgi_exec(Request &request, Location &loc) {
 	int write_fd[2];
 	int pid;
 	int ret1 = pipe(read_fd);
-	int status;
 
 	if (ret1 < 0 || pipe(write_fd) < 0)
 		return -1;
@@ -55,15 +54,15 @@ int CgiHandler::cgi_exec(Request &request, Location &loc) {
 		close(read_fd[1]);
 		char **env = set_env();
 		std::string extension = request.get_path().substr(request.get_path().find(".") + 1);
+		std::cout << extension << std::endl;
 		char *av[3] = { const_cast<char*>(loc.getCgiBinary(extension).c_str()), 
 		const_cast<char*>(loc.root.c_str()), NULL};
 		std::cout << "CGI exec\n";
 		if (env)
 			ret1 = execve(av[0], av, env);
 		else
-			exit(1);
+			exit(1);		
 		exit(ret1);
-		// execve(,,env);
 	} else {
 		close(write_fd[0]);
 		close(read_fd[1]);

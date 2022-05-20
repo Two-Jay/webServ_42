@@ -163,6 +163,7 @@ bool ServerManager::handle_CGI(Request *request, Location *loc)
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
+		std::cout << "first : " << it->first << std::endl << "second : " << it->second << std::endl;
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}
