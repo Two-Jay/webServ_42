@@ -233,6 +233,7 @@ void ServerManager::treat_request()
 				std::cout << "Request: " << req;
 				if (loc && handle_CGI(&req, loc))
 				{
+					std::cout << "cgi check!!!!!!!!" << std::cout;
 					CgiHandler cgi(req);
 					cgi.cgi_exec(req, *loc);
 					return ;
