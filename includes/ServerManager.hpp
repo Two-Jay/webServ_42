@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <dirent.h>
 #include <cstdio>
+#include <sys/stat.h>
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
