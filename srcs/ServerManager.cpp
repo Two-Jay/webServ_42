@@ -158,13 +158,20 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
+
+// cgi-info-first : extension
+// cgi-info-second : program to run
+
+// extension check...
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		if (request->get_path().find(it->first) != std::string::npos)
+		std::cout << "get_path info : " << request->get_path().find(it->first) << std::endl;
+		if (request->get_path().find(it->first) != std::string::npos) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -222,18 +229,19 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::vector<MethodType> method_list;
-				loc ? method_list = loc->allow_methods : method_list = clients[i].server->allow_methods;
+				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
 				if (!is_allowed_method(method_list, req.method))
 				{
 					send_405_error_page(405, clients[i], method_list);
 					drop_client(clients[i]);
 					continue;
 				}
-
 				std::cout << "Request: " << req;
 				if (loc && handle_CGI(&req, loc))
 				{
+					std::cout << "cgi check!!!!!!!!" << std::endl;
 					CgiHandler cgi(req);
+					std::cout << cgi;
 					cgi.cgi_exec(req, *loc);
 					return ;
 				}
