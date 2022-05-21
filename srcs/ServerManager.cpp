@@ -95,7 +95,13 @@ void ServerManager::print_servers_info()
 ** Client methods
 */
 
-void ServerManager::wait_on_clients()
+void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
+{
+	FD_SET(fd, fds);
+	if (this->max_fd) this->max_fd = fd;
+}
+
+void ServerManager::run_selectPoll()
 {
 	int max = -1;
 	int recv;
@@ -106,19 +112,15 @@ void ServerManager::wait_on_clients()
 	{
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
 		{
-			FD_SET(servers[i].listen_socket[j], &reads);
-			if (max < servers[i].listen_socket[j])
-				max = servers[i].listen_socket[j];
+			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
 		}
 	}
 	
 	for (int i = 0; i < clients.size(); i++)
 	{
-		FD_SET(clients[i].get_socket(), &reads);
-		if (clients[i].get_socket() > max)
-			max = clients[i].get_socket();
+		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
-	if (select(max + 1, &reads, 0, 0, 0) < 0)
+	if (select(this->max_fd + 1, &reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL) 
@@ -133,6 +135,8 @@ void ServerManager::wait_on_clients()
 		}
 		exit(1);
 	}
+	// max_fd 갱신...
+	this->max_fd = max;
 	this->reads = reads;
 }
 
