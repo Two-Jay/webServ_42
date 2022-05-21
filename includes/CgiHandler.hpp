@@ -10,12 +10,10 @@
 class CgiHandler {
 	private:
 		std::map<std::string, std::string> env;
-		std::string CGI_result;
 	public:
 		CgiHandler(Request &request);
 		char** set_env();
-		std::string& get_CGI_result(void);
-		void excute_CGI(Request &Request, Location &loc);
+		int excute_CGI(Request &Request, Location &loc);
 
 		friend std::ostream &operator<<(std::ostream &out, CgiHandler &ch)
 		{

@@ -38,11 +38,7 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-std::string& CgiHandler::get_CGI_result(void) {
-	return this->CGI_result;
-};
-
-void CgiHandler::excute_CGI(Request &Request, Location &loc)
+int CgiHandler::excute_CGI(Request &Request, Location &loc)
 {
 	int read_fd[2];
 	int write_fd[2];
@@ -50,9 +46,9 @@ void CgiHandler::excute_CGI(Request &Request, Location &loc)
 	int ret1 = pipe(read_fd);
 	std::string cgires;
 
-	if (ret1 < 0 || pipe(write_fd) < 0) return ;
+	if (ret1 < 0 || pipe(write_fd) < 0) return -1;
 	pid = fork();
-	if (pid < 0) return ;
+	if (pid < 0) return -1;
 	else if (pid == 0)
 	{
 		dup2(write_fd[0], STDIN_FILENO);
@@ -71,17 +67,6 @@ void CgiHandler::excute_CGI(Request &Request, Location &loc)
 	{
 		close(write_fd[0]);
 		close(read_fd[1]);
-		char read_buf[BUFFER_SIZE];
-		memset(read_buf, 0, BUFFER_SIZE);
-		int nbytes = 1;
-		while (nbytes > 0)
-		{
-			nbytes = read(read_fd[0], read_buf, BUFFER_SIZE);
-			if (nbytes <= 0) break ;
-			cgires.append(read_buf);
-			memset(read_buf, 0, BUFFER_SIZE);
-		}
-		std::cout << cgires << '\n';
-		this->CGI_result = cgires;
+		return read_fd[0];
 	}
 }
