@@ -283,23 +283,27 @@ void ServerManager::treat_request()
 void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 {
 	std::cout << "send req" << '\n';
-	size_t BUFFER_SIZE = 2048;
-	char cgi_buf[BUFFER_SIZE];
-	int rbytes;
 	
-	memset(cgi_buf, 0x00, BUFFER_SIZE);
-	rbytes = recv(cgi_read_fd, cgi_buf, BUFFER_SIZE, 0);
-	if (rbytes < 1)
-	{
-		std::cout << "> Unexpected disconnect from (" << rbytes << ")[" << client.get_client_address() << "]." << std::endl;
-		fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
+	if (FD_ISSET(cgi_read_fd, &this->reads) < 0) {
+		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
 		send_error_page(500, client);
 		drop_client(client);
 	}
 	else
 	{
+		size_t BUFFER_SIZE = 2048;
+		char cgi_buf[BUFFER_SIZE];
+		std::string cgi_ret;
+		int rbytes;
+	
 		std::cout << "got cgi_result" << std::endl;
-		std::cout << cgi_buf << std::endl;
+		memset(cgi_buf, 0x00, BUFFER_SIZE);
+		while ((rbytes = read(cgi_read_fd, cgi_buf, BUFFER_SIZE)) > 0) {
+			if (rbytes == -1) break ;
+			cgi_ret += cgi_buf;
+			memset(cgi_buf, 0x00, BUFFER_SIZE);
+		}
+		std::cout << cgi_ret << '\n';
 		drop_client(client);
 	}
 }

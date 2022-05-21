@@ -28,7 +28,8 @@ public:
 	~ServerManager();
 
 	void accept_sockets();
-	void run_selectPoll();
+
+	void wait_to_client();
 	void drop_client(Client client);
 
 	void create_servers();
@@ -39,6 +40,8 @@ public:
 
 private:
 	void add_fd_selectPoll(int fd, fd_set* fds);
+	void run_selectPoll(fd_set *reads);
+	void send_cgi_response(Client& client, int cgi_read_fd);
 	void send_error_page(int code, Client &Client);
 	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
 	void send_redirection(Client &client, std::string request_method);
