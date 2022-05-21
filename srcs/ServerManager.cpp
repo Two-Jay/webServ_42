@@ -158,14 +158,20 @@ void ServerManager::drop_client(Client client)
 ** Response methods
 */
 
+
+// cgi-info-first : extension
+// cgi-info-second : program to run
+
+// extension check...
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		std::cout << "first : " << it->first << std::endl << "second : " << it->second << std::endl;
-		if (request->get_path().find(it->first) != std::string::npos)
+		std::cout << "get_path info : " << request->get_path().find(it->first) << std::endl;
+		if (request->get_path().find(it->first) != std::string::npos) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -223,20 +229,24 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::vector<MethodType> method_list;
-				loc ? method_list = loc->allow_methods : method_list = clients[i].server->allow_methods;
+				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
 				if (!is_allowed_method(method_list, req.method))
 				{
 					send_405_error_page(405, clients[i], method_list);
 					drop_client(clients[i]);
 					continue;
 				}
-
 				std::cout << "Request: " << req;
 				if (loc && handle_CGI(&req, loc))
 				{
-					std::cout << "cgi check!!!!!!!!" << std::cout;
 					CgiHandler cgi(req);
-					cgi.cgi_exec(req, *loc);
+					std::cout << cgi;
+					cgi.excute_CGI(req, *loc);
+					std::string cgi_ret = cgi.get_CGI_result();
+					std::cout << "cgi returned : \n";
+					std::cout << "cgi_length : " << cgi_ret.length() << '\n';
+					std::cout << "[" << cgi_ret << "]";
+					// send_cgi_res(cgi, clients[i]);
 					return ;
 				}
 				// body size 검사 해야함
@@ -257,6 +267,11 @@ void ServerManager::treat_request()
 		}
 	}
 }
+
+// void send_cgi_res(CgiHandler& ch, Client& client)
+// {
+// 	std::string
+// }
 
 bool ServerManager::is_response_timeout(Client& client) {
 	static timeval tv;
