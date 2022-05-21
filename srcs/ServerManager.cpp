@@ -101,26 +101,9 @@ void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 	if (this->max_fd) this->max_fd = fd;
 }
 
-void ServerManager::run_selectPoll()
+void ServerManager::run_selectPoll(fd_set *reads)
 {
-	int max = -1;
-	int recv;
-	fd_set reads;
-
-	FD_ZERO(&reads);
-	for (int i = 0; i < servers.size(); i++)
-	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
-		{
-			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
-		}
-	}
-	
-	for (int i = 0; i < clients.size(); i++)
-	{
-		add_fd_selectPoll(clients[i].get_socket(), &reads);
-	}
-	if (select(this->max_fd + 1, &reads, 0, 0, 0) < 0)
+	if (select(this->max_fd + 1, reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL) 
@@ -135,6 +118,27 @@ void ServerManager::run_selectPoll()
 		}
 		exit(1);
 	}
+}
+
+void ServerManager::wait_to_client()
+{
+	int max = -1;
+	int recv;
+	fd_set reads = this->reads;
+
+	FD_ZERO(&reads);
+	for (int i = 0; i < servers.size(); i++)
+	{
+		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		{
+			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
+		}
+	}
+	for (int i = 0; i < clients.size(); i++)
+	{
+		add_fd_selectPoll(clients[i].get_socket(), &reads);
+	}
+	run_selectPoll(&reads);
 	// max_fd 갱신...
 	this->max_fd = max;
 	this->reads = reads;
@@ -245,37 +249,60 @@ void ServerManager::treat_request()
 				{
 					CgiHandler cgi(req);
 					std::cout << cgi;
-					cgi.excute_CGI(req, *loc);
-					std::string cgi_ret = cgi.get_CGI_result();
-					std::cout << "cgi returned : \n";
-					std::cout << "cgi_length : " << cgi_ret.length() << '\n';
-					std::cout << "[" << cgi_ret << "]";
-					// send_cgi_res(cgi, clients[i]);
+					int read_fd = cgi.excute_CGI(req, *loc);
+					this->add_fd_selectPoll(read_fd, &this->reads);
+					this->run_selectPoll(&this->reads);
+					if (is_response_timeout(clients[i]) == true)
+						send_error_page(408, clients[i]);
+					else
+						send_cgi_response(clients[i], read_fd);
 					return ;
 				}
-				// body size 검사 해야함
-				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
-				// Content_length 체크해서.
-				if (is_response_timeout(clients[i]) == true)
-					send_error_page(408, clients[i]);
-				if (clients[i].server->redirect_status != -1)
-					send_redirection(clients[i], req.method);
-				else if (req.method == "GET")
-					get_method(clients[i], req.path);
-				else if (req.method == "POST")
-					post_method(clients[i], req);
-				else if (req.method == "DELETE")
-					delete_method(clients[i], req.path);
+				else
+				{
+					// body size 검사 해야함
+					// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
+					// Content_length 체크해서.
+					if (is_response_timeout(clients[i]) == true)
+						send_error_page(408, clients[i]);
+					if (clients[i].server->redirect_status != -1)
+						send_redirection(clients[i], req.method);
+					else if (req.method == "GET")
+						get_method(clients[i], req.path);
+					else if (req.method == "POST")
+						post_method(clients[i], req);
+					else if (req.method == "DELETE")
+						delete_method(clients[i], req.path);
+				}
 				drop_client(clients[i]);
 			}
 		}
 	}
 }
 
-// void send_cgi_res(CgiHandler& ch, Client& client)
-// {
-// 	std::string
-// }
+void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
+{
+	std::cout << "send req" << '\n';
+	size_t BUFFER_SIZE = 2048;
+	char cgi_buf[BUFFER_SIZE];
+	int rbytes;
+	
+	memset(cgi_buf, 0x00, BUFFER_SIZE);
+	rbytes = recv(cgi_read_fd, cgi_buf, BUFFER_SIZE, 0);
+	if (rbytes < 1)
+	{
+		std::cout << "> Unexpected disconnect from (" << rbytes << ")[" << client.get_client_address() << "]." << std::endl;
+		fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
+		send_error_page(500, client);
+		drop_client(client);
+	}
+	else
+	{
+		std::cout << "got cgi_result" << std::endl;
+		std::cout << cgi_buf << std::endl;
+		drop_client(client);
+	}
+}
 
 bool ServerManager::is_response_timeout(Client& client) {
 	static timeval tv;
