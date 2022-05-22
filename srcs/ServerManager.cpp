@@ -34,8 +34,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 		for (it = servers[i].error_pages.begin(); it != servers[i].error_pages.end(); it++)
 		{
 			int status_code = it->first;
-			if (status_code < 400 || (status_code > 431 && status_code < 500) 
-				|| status_code > 511 || status_info.find(status_code) == status_info.end())
+			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
 			{
 				fprintf(stderr, "[ERROR] invalid status code on error_page\n");
 				exit(1);
