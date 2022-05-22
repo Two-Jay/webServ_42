@@ -2,7 +2,7 @@
 
 #define BUFFER_SIZE 100
 
-CgiHandler::CgiHandler(Request &request)
+CgiHandler::CgiHandler(Request &request, Location& loc)
 {
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->env["SERVER_NAME"] = request.headers["Host"];
@@ -10,7 +10,7 @@ CgiHandler::CgiHandler(Request &request)
 	this->env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["REQUEST_METHOD"] = request.method;
-	this->env["PATH_INFO"] = request.get_path();
+	this->env["PATH_INFO"] = this->get_PATH_INFO(request, loc.get_root());
 	this->env["PATH_TRANSLATED"] = request.get_path();
 	this->env["SCRIPT_NAME"] = request.get_path();
 	this->env["QUERY_STRING"] = request.get_query();
@@ -20,8 +20,24 @@ CgiHandler::CgiHandler(Request &request)
 	this->env["REMOTE_USER"] = "";
 	this->env["REMOTE_IDENT"] = "";
 	this->env["CONTENT_TYPE"] = request.headers["Content-Type"];
-	this->env["CONTENT_LENGTH"] = request.headers["Content-Length"];
+	this->env["CONTENT_LENGTH"] = "-1";
 }
+
+std::string CgiHandler::get_PATH_INFO(Request& req, std::string loc_root) {
+	std::string ret;
+	std::string req_path = req.get_path();
+	char *pwd = getcwd(NULL, 0);
+	
+	ret += pwd;
+	ret += "/";
+	if (loc_root[0] == '.') loc_root.erase(0, 1);
+	if (loc_root[0] == '/') loc_root.erase(0, 1);
+	std::string tmp = req_path.substr(req_path.find_last_of("/"));
+	ret += loc_root;
+	ret += tmp;
+	free(pwd);
+	return ret;
+};
 
 char** CgiHandler::set_env()
 {

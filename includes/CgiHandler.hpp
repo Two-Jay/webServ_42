@@ -11,7 +11,7 @@ class CgiHandler {
 	private:
 		std::map<std::string, std::string> env;
 	public:
-		CgiHandler(Request &request);
+		CgiHandler(Request &request, Location& loc);
 		char** set_env();
 		int excute_CGI(Request &Request, Location &loc);
 
@@ -23,6 +23,7 @@ class CgiHandler {
 			}
 			return out;
 		}
+		std::string get_PATH_INFO(Request& req, std::string loc_root);
 };
 
 #endif
