@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <cstdio>
 #include <sys/stat.h>
+#include <fstream>
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -38,8 +39,7 @@ public:
 	void print_servers_info();
 
 private:
-	void send_error_page(int code, Client &Client);
-	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
+	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods);
 	void send_redirection(Client &client, std::string request_method);
 	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
 	std::string methodtype_to_s(MethodType method);

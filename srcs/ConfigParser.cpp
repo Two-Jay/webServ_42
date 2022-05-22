@@ -195,6 +195,18 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 		server->redirect_status = atoi(tmp[0].c_str());
 		server->redirect_url = tmp[1];
 	}
+	else if (key == "error_page")
+	{
+		std::vector<std::string> tmp = split(value, ' ');
+		std::string path = tmp[tmp.size() - 1];
+		for (int i = 0; i != tmp.size() - 1; i++)
+		{
+			int status_code = atoi(tmp[i].c_str());
+			if (server->error_pages.find(status_code) != server->error_pages.end())
+				continue;
+			server->error_pages.insert(std::make_pair(status_code, path));
+		}
+	}
 	else
 	{
 		return FAILED;

@@ -17,6 +17,7 @@ public:
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
 	std::vector<Location> locations;
+	std::map<int, std::string> error_pages;
 	
 	int redirect_status;
 	std::string redirect_url;
