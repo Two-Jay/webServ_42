@@ -256,7 +256,6 @@ void ServerManager::treat_request()
 						send_error_page(408, clients[i]);
 					else
 						send_cgi_response(clients[i], read_fd);
-					return ;
 				}
 				else
 				{
@@ -296,16 +295,51 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 		std::string cgi_ret;
 		int rbytes;
 	
-		std::cout << "got cgi_result" << std::endl;
 		memset(cgi_buf, 0x00, BUFFER_SIZE);
 		while ((rbytes = read(cgi_read_fd, cgi_buf, BUFFER_SIZE)) > 0) {
 			if (rbytes == -1) break ;
 			cgi_ret += cgi_buf;
 			memset(cgi_buf, 0x00, BUFFER_SIZE);
+			run_selectPoll(&this->reads);
 		}
-		std::cout << cgi_ret << '\n';
-		drop_client(client);
+		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
+		Response res(get_status_cgi(cgi_ret));
+		create_cgi_msg(res, cgi_ret);
+		std::string result = res.serialize();
+		send(client.get_socket(), result.c_str(), result.size(), 0);
 	}
+}
+
+std::string ServerManager::get_status_cgi(std::string& cgi_ret) {
+	std::string status_line;
+	std::stringstream ss(cgi_ret);
+
+	getline(ss, status_line, '\n');
+	cgi_ret.erase(0, status_line.length() + 1);
+	status_line.erase(0, 8);
+	status_line.erase(status_line.length() - 1, 1);
+	return status_line;
+}
+
+void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret) {
+	std::stringstream ss(cgi_ret);
+	std::string tmp;
+
+	while (getline(ss, tmp, '\n')) {
+		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+		size_t mid_deli = tmp.find(":");
+		size_t end_deli = tmp.find(";") == std::string::npos ? tmp.find("\n") : tmp.find(";");
+		if (tmp[end_deli] == '\r') {
+			tmp.erase(tmp.length() - 1, 1);
+			end_deli -= 1;
+		}
+		std::string key = tmp.substr(0, mid_deli);
+		std::string value = tmp.substr(mid_deli + 1, end_deli);
+		res.append_header(key, value);
+	}
+	getline(ss, tmp, '\n');
+	tmp.append("\n");
+	res.set_body(tmp);
 }
 
 bool ServerManager::is_response_timeout(Client& client) {

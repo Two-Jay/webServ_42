@@ -44,7 +44,6 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 	int write_fd[2];
 	int pid;
 	int ret1 = pipe(read_fd);
-	std::string cgires;
 
 	if (ret1 < 0 || pipe(write_fd) < 0) return -1;
 	pid = fork();

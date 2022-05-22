@@ -58,6 +58,8 @@ private:
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);
+	std::string get_status_cgi(std::string& cgi_ret);
+	void create_cgi_msg(Response& res, std::string& cgi_ret);
 };
 
 #endif

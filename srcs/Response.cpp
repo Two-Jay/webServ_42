@@ -21,6 +21,11 @@ int Response::get_body_size()
 	return body.size();
 }
 
+void Response::set_body(std::string& str)
+{
+	this->body = str;
+}
+
 std::string Response::make_header()
 {
 	std::string result;
