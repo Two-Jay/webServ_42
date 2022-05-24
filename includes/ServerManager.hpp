@@ -11,6 +11,8 @@
 #include "Response.hpp"
 #include "CgiHandler.hpp"
 
+#define CGI_READ_BUFFER_SIZE 64000
+
 class ServerManager
 {
 private:
@@ -41,6 +43,7 @@ public:
 private:
 	void add_fd_selectPoll(int fd, fd_set* fds);
 	void run_selectPoll(fd_set *reads);
+	void run_selectPoll(fd_set *reads, struct timeval &tv);
 	void send_cgi_response(Client& client, int cgi_read_fd);
 	void send_error_page(int code, Client &Client);
 	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
@@ -59,7 +62,8 @@ private:
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);
 	std::string get_status_cgi(std::string& cgi_ret);
-	void create_cgi_msg(Response& res, std::string& cgi_ret);
+	void create_cgi_msg(Response& res, std::string& cgi_ret, Client &client);
+	std::string read_with_timeout(int fd, int timeout_ms);
 };
 
 #endif

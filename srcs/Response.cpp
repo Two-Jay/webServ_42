@@ -30,7 +30,7 @@ std::string Response::make_header()
 {
 	std::string result;
 
-	result.append("HTTP/1.1 " + status_code + "\r\n");
+	result.append("HTTP/1.1 " + status_code + " " + status_phrase + "\r\n");
 	for (std::map<std::string, std::string>::iterator i = headers.begin(); i != headers.end(); i++)
 	{
 		result.append((*i).first + ": " + (*i).second + "\r\n");	
@@ -69,7 +69,7 @@ std::string Response::serialize()
 {
 	std::string result;
 
-	result.append("HTTP/1.1 " + status_code + "\r\n");
+	result.append("HTTP/1.1 " + status_code + " " + status_phrase + "\r\n");
 	for (std::map<std::string, std::string>::iterator i = headers.begin(); i != headers.end(); i++)
 	{
 		result.append((*i).first + ": " + (*i).second + "\r\n");	

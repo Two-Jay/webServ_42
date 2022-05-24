@@ -97,6 +97,7 @@ void ServerManager::print_servers_info()
 
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
+	FD_ZERO(fds);
 	FD_SET(fd, fds);
 	if (this->max_fd) this->max_fd = fd;
 }
@@ -120,13 +121,31 @@ void ServerManager::run_selectPoll(fd_set *reads)
 	}
 }
 
+void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
+{
+	if (select(this->max_fd + 1, reads, 0, 0, &tv) < 0)
+	{
+		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+		if (errno == EINVAL) 
+		{
+			for (int i = 0; i < clients.size(); i++)
+				send_error_page(429, clients[i]);
+		}
+		else 
+		{
+			for (int i = 0; i < clients.size(); i++)
+				send_error_page(500, clients[i]);
+		}
+		exit(1);
+	}
+}
+
 void ServerManager::wait_to_client()
 {
 	int max = -1;
 	int recv;
 	fd_set reads = this->reads;
 
-	FD_ZERO(&reads);
 	for (int i = 0; i < servers.size(); i++)
 	{
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
@@ -139,7 +158,6 @@ void ServerManager::wait_to_client()
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
 	run_selectPoll(&reads);
-	// max_fd 갱신...
 	this->max_fd = max;
 	this->reads = reads;
 }
@@ -165,12 +183,6 @@ void ServerManager::drop_client(Client client)
 /*
 ** Response methods
 */
-
-
-// cgi-info-first : extension
-// cgi-info-second : program to run
-
-// extension check...
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
@@ -247,11 +259,9 @@ void ServerManager::treat_request()
 				std::cout << "Request: " << req;
 				if (loc && handle_CGI(&req, loc))
 				{
-					CgiHandler cgi(req);
+					CgiHandler cgi(req, *loc);
 					std::cout << cgi;
 					int read_fd = cgi.excute_CGI(req, *loc);
-					this->add_fd_selectPoll(read_fd, &this->reads);
-					this->run_selectPoll(&this->reads);
 					if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i]);
 					else
@@ -282,35 +292,53 @@ void ServerManager::treat_request()
 void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 {
 	std::cout << "send req" << '\n';
+	int FD_SET_check = 0;
 	
-	if (FD_ISSET(cgi_read_fd, &this->reads) < 0) {
+	this->add_fd_selectPoll(cgi_read_fd, &this->reads);
+	this->run_selectPoll(&this->reads);
+	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &this->reads)) == 0) 
+	{
+		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
 		send_error_page(500, client);
 		drop_client(client);
 	}
 	else
 	{
-		size_t BUFFER_SIZE = 2048;
-		char cgi_buf[BUFFER_SIZE];
-		std::string cgi_ret;
-		int rbytes;
-	
-		memset(cgi_buf, 0x00, BUFFER_SIZE);
-		while ((rbytes = read(cgi_read_fd, cgi_buf, BUFFER_SIZE)) > 0) {
-			if (rbytes == -1) break ;
-			cgi_ret += cgi_buf;
-			memset(cgi_buf, 0x00, BUFFER_SIZE);
-			run_selectPoll(&this->reads);
-		}
+		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
 		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
-		Response res(get_status_cgi(cgi_ret));
-		create_cgi_msg(res, cgi_ret);
-		std::string result = res.serialize();
-		send(client.get_socket(), result.c_str(), result.size(), 0);
+		close(cgi_read_fd);
+		if (cgi_ret.compare("cgi: failed") != 0) send_error_page(400, client);
+		else
+		{
+			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			create_cgi_msg(res, cgi_ret, client);
+			std::string result = res.serialize();
+			std::cout << result;
+			send(client.get_socket(), result.c_str(), result.size(), 0);
+		} 
 	}
 }
 
-std::string ServerManager::get_status_cgi(std::string& cgi_ret) {
+std::string ServerManager::read_with_timeout(int fd, int timeout_ms) {
+	int rbytes = 1;
+	struct timeval timeout_tv;
+	char cgi_buf[CGI_READ_BUFFER_SIZE];
+	memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
+	std::string ret;
+
+	timeout_tv.tv_sec = 0;
+	timeout_tv.tv_usec = 1000 * timeout_ms;
+	while (rbytes > 0) {
+		rbytes = read(fd, cgi_buf, CGI_READ_BUFFER_SIZE);
+		ret += cgi_buf;
+		memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
+	}
+	return ret;
+}
+
+std::string ServerManager::get_status_cgi(std::string& cgi_ret)
+{
 	std::string status_line;
 	std::stringstream ss(cgi_ret);
 
@@ -321,17 +349,24 @@ std::string ServerManager::get_status_cgi(std::string& cgi_ret) {
 	return status_line;
 }
 
-void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret) {
+void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &client)
+{
 	std::stringstream ss(cgi_ret);
+	size_t tmpi;
 	std::string tmp;
 
+	res.append_header("Server", client.server->server_name);
+	res.append_header("Connection", "close");
 	while (getline(ss, tmp, '\n')) {
 		if (tmp.length() == 1 && tmp[0] == '\r') break ;
 		size_t mid_deli = tmp.find(":");
-		size_t end_deli = tmp.find(";") == std::string::npos ? tmp.find("\n") : tmp.find(";");
+		size_t end_deli = tmp.find("\n");
 		if (tmp[end_deli] == '\r') {
 			tmp.erase(tmp.length() - 1, 1);
 			end_deli -= 1;
+		}
+		if ((tmpi = tmp.find(";")) != std::string::npos) {
+			tmp = tmp.substr(0, tmpi);
 		}
 		std::string key = tmp.substr(0, mid_deli);
 		std::string value = tmp.substr(mid_deli + 1, end_deli);
@@ -340,9 +375,11 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret) {
 	getline(ss, tmp, '\n');
 	tmp.append("\n");
 	res.set_body(tmp);
+	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
 
-bool ServerManager::is_response_timeout(Client& client) {
+bool ServerManager::is_response_timeout(Client& client)
+{
 	static timeval tv;
 	
 	gettimeofday(&tv, NULL);

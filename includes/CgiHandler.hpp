@@ -23,7 +23,7 @@ class CgiHandler {
 			}
 			return out;
 		}
-		std::string get_PATH_INFO(Request& req, std::string loc_root);
+		std::string get_target_file_fullpath(Request& req, Location& loc);
 };
 
 #endif
