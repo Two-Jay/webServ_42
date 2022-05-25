@@ -125,12 +125,12 @@ void ServerManager::run_selectPoll(fd_set *reads)
 		if (errno == EINVAL) 
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i]);
+				send_error_page(429, clients[i], NULL);
 		}
 		else 
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i]);
+				send_error_page(500, clients[i], NULL);
 		}
 		exit(1);
 	}
@@ -277,8 +277,10 @@ void ServerManager::treat_request()
 					CgiHandler cgi(req, *loc);
 					std::cout << cgi;
 					int read_fd = cgi.excute_CGI(req, *loc);
+					if (read_fd == -1)
+						send_error_page(404, clients[i], NULL);
 					if (is_response_timeout(clients[i]) == true)
-						send_error_page(408, clients[i]);
+						send_error_page(408, clients[i], NULL);
 					else
 						send_cgi_response(clients[i], read_fd);
 				}
@@ -288,7 +290,7 @@ void ServerManager::treat_request()
 					// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
 					// Content_length 체크해서.
 					if (is_response_timeout(clients[i]) == true)
-						send_error_page(408, clients[i]);
+						send_error_page(408, clients[i], NULL);
 					if (clients[i].server->redirect_status != -1)
 						send_redirection(clients[i], req.method);
 					else if (req.method == "GET")
@@ -315,7 +317,7 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 	{
 		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
-		send_error_page(500, client);
+		send_error_page(500, client, NULL);
 		drop_client(client);
 	}
 	else
@@ -323,7 +325,7 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
 		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
 		close(cgi_read_fd);
-		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client);
+		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
 		else
 		{
 			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);

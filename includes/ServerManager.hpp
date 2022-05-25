@@ -46,7 +46,7 @@ private:
 	void run_selectPoll(fd_set *reads);
 	void run_selectPoll(fd_set *reads, struct timeval &tv);
 	void send_cgi_response(Client& client, int cgi_read_fd);
-	void send_error_page(int code, Client &Client);
+	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods);
 	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
 	void send_redirection(Client &client, std::string request_method);
 	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
