@@ -1,6 +1,7 @@
 #include "../includes/CgiHandler.hpp"
 
-#define BUFFER_SIZE 100
+#define CGI_RESOURCE_BUFFER_SIZE 100
+#define CGI_READ_BUFFER_SIZE 64000
 
 //# meta-variables
 // gateway_interface : CGI/1.1
@@ -43,17 +44,20 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["CONTENT_LENGTH"] = "-1";
 	if (request.method == "GET")
 	{
-		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
-		char buffer[BUFFER_SIZE];
-		int r = BUFFER_SIZE;
-		while ((r = fread(buffer, 1, BUFFER_SIZE, this->resource_p)) > 0)
-		{
-			file_resource += buffer;
-		}
-		file_size = file_resource.size();
-		this->env["CONTENT_LENGTH"] = std::to_string(file_size);
+		load_file_resource();
 	}
 	loc.print_location_info();
+}
+
+void CgiHandler::load_file_resource() {
+	this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
+	char buffer[CGI_RESOURCE_BUFFER_SIZE];
+	int r = CGI_RESOURCE_BUFFER_SIZE;
+	while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+	{
+		this->file_resource += buffer;
+	}
+	this->env["CONTENT_LENGTH"] = std::to_string(file_size);
 }
 
 std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
@@ -88,12 +92,7 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-static void kill_child(int sig)
-{
-    kill(-1,SIGKILL);
-}
-
-int CgiHandler::excute_CGI(Request &Request, Location &loc)
+int* CgiHandler::excute_CGI(Request &Request, Location &loc)
 {
 	int read_fd[2];
 	int write_fd[2];
@@ -116,31 +115,83 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		const_cast<char*>(loc.root.c_str()), NULL};
 		if (env)
 		{
-			std::cerr << ">> av[0] : " << av[0] << "\n";
-			std::cerr << ">> av[1] : " << av[1] << "\n";
-			std::cerr << ">> cgi run.....................\n";
 			ret1 = execve(av[0], av, env);
 		}
 		exit(1);
 	}
 	else
 	{
-		
 		close(write_fd[0]);
 		close(read_fd[1]);
-		int wbyte = write(write_fd[1], file_resource.c_str(), file_size);
-		if (wbyte == -1) {
-			alarm(30);
-			wait(NULL);
-			return -1;
-		}
-		int status;
-		waitpid(pid, &status, 0);
-		std::cerr << ">> cgi done.....................\n";
-		return read_fd[0];
+		set_pipe_write_fd(write_fd[1]);
+		set_pipe_read_fd(read_fd[0]);
+		// int wbyte = write(write_fd[1], file_resource.c_str(), file_size);
+		// if (wbyte == -1) {
+		// 	alarm(30);
+		// 	wait(NULL);
+		// 	return -1;
+		// }
+		// signal(SIGALRM, SIG_DFL);
 	}
 }
 
 std::string& CgiHandler::get_file_resource(void) const {
 	return this->file_resource;
+}
+
+int CgiHandler::get_pipe_write_fd(void) {
+	return this->pipe_wfd;
+};
+
+int CgiHandler::get_pipe_read_fd(void) {
+	return this->pipe_rfd;
+};
+
+void CgiHandler::set_pipe_write_fd(int fd) {
+	this->pipe_wfd = fd;
+};
+
+void CgiHandler::set_pipe_read_fd(int fd) {
+	this->pipe_rfd = fd;
+};
+
+std::string& CgiHandler::read_from_CGI_process(int timeout_ms) {
+	int rbytes = 1;
+	struct timeval timeout_tv;
+	char buf[CGI_READ_BUFFER_SIZE];
+	memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
+	std::string ret;
+
+	timeout_tv.tv_sec = 0;
+	timeout_tv.tv_usec = 1000 * timeout_ms;
+	while (rbytes > 0) {
+		rbytes = read(this->get_pipe_read_fd(), buf, CGI_READ_BUFFER_SIZE);
+		ret += buf;
+		memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
+	}
+	return ret;
+};
+
+int CgiHandler::write_to_CGI_process() {
+	int wbyte = write(
+					this->get_pipe_write_fd(), 
+					this->file_resource.c_str(), 
+					this->file_resource.size()
+				);
+	if (wbyte == -1)
+	{
+		alarm(30);
+		waitpid(-1, NULL, 0);
+		return -1;
+	}
+	else
+	{
+		signal(SIGALRM, SIG_DFL);
+		return wbyte;
+	}
+};
+
+static void set_signal_kill_child_process(int sig)
+{
+    kill(-1,SIGKILL);
 }
