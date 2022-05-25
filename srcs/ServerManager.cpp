@@ -67,7 +67,7 @@ void ServerManager::accept_sockets()
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
 		{
 			server = servers[i].listen_socket[j];
-			if (FD_ISSET(server, reads))
+			if (FD_ISSET(server, &reads))
 			{
 				clients.push_back(Client(&servers[i]));
 				Client &client = clients.back();
@@ -138,7 +138,7 @@ void ServerManager::run_selectPoll(fd_set *reads)
 	} else if (ret == 0) {
 		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
-	this->reads = reads;
+	this->reads = *reads;
 	std::cout << "select done ......................................." << std::endl;;
 }
 
@@ -159,7 +159,7 @@ void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
 		}
 		exit(1);
 	}
-	this->reads = reads;
+	this->reads = *reads;
 	std::cout << "select done ......................................." << std::endl;;
 }
 
@@ -261,7 +261,7 @@ void ServerManager::treat_request()
 {
 	for (int i = 0  ; i < clients.size() ; i++)
 	{
-		if (FD_ISSET(clients[i].get_socket(), reads))
+		if (FD_ISSET(clients[i].get_socket(), &reads))
 		{
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
@@ -357,9 +357,9 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 	std::cout << "send req" << '\n';
 	int FD_SET_check = 0;
 	
-	this->add_fd_selectPoll(cgi_read_fd, this->reads);
-	this->run_selectPoll(this->reads);
-	if ((FD_SET_check = FD_ISSET(cgi_read_fd, this->reads)) == 0) 
+	this->add_fd_selectPoll(cgi_read_fd, &(this->reads));
+	this->run_selectPoll(&(this->reads));
+	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &(this->reads))) == 0) 
 	{
 		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
