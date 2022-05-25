@@ -27,7 +27,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
-
+	max_fd = -1;
 	for (int i = 0; i < servers.size(); i++)
 	{
 		std::map<int, std::string>::iterator it;
@@ -67,7 +67,7 @@ void ServerManager::accept_sockets()
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
 		{
 			server = servers[i].listen_socket[j];
-			if (FD_ISSET(server, &reads))
+			if (FD_ISSET(server, reads))
 			{
 				clients.push_back(Client(&servers[i]));
 				Client &client = clients.back();
@@ -112,17 +112,19 @@ void ServerManager::print_servers_info()
 
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
-	FD_ZERO(fds);
+
 	FD_SET(fd, fds);
-	if (this->max_fd) this->max_fd = fd;
+	if (this->max_fd < fd) this->max_fd = fd;
 }
 
 void ServerManager::run_selectPoll(fd_set *reads)
 {
-	if (select(this->max_fd + 1, reads, 0, 0, 0) < 0)
+	int ret = 0;
+
+	if ((ret = select(this->max_fd + 1, reads, 0, 0, 0)) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-		if (errno == EINVAL) 
+		if (errno == EINVAL)
 		{
 			for (int i = 0; i < clients.size(); i++)
 				send_error_page(429, clients[i], NULL);
@@ -133,7 +135,11 @@ void ServerManager::run_selectPoll(fd_set *reads)
 				send_error_page(500, clients[i], NULL);
 		}
 		exit(1);
+	} else if (ret == 0) {
+		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
+	this->reads = reads;
+	std::cout << "select done ......................................." << std::endl;;
 }
 
 void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
@@ -153,14 +159,55 @@ void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
 		}
 		exit(1);
 	}
+	this->reads = reads;
+	std::cout << "select done ......................................." << std::endl;;
 }
+
+
+	// int max = -1;
+	// int recv;
+	// fd_set reads;
+
+	// FD_ZERO(&reads);
+	// for (int i = 0; i < servers.size(); i++)
+	// {
+	// 	for (int j = 0; j < servers[i].listen_socket.size(); j++)
+	// 	{
+	// 		FD_SET(servers[i].listen_socket[j], &reads);
+	// 		if (max < servers[i].listen_socket[j])
+	// 			max = servers[i].listen_socket[j];
+	// 	}
+	// }
+	
+	// for (int i = 0; i < clients.size(); i++)
+	// {
+	// 	FD_SET(clients[i].get_socket(), &reads);
+	// 	if (clients[i].get_socket() > max)
+	// 		max = clients[i].get_socket();
+	// }
+	// if (select(max + 1, &reads, 0, 0, 0) < 0)
+	// {
+	// 	fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+	// 	if (errno == EINVAL) 
+	// 	{
+	// 		for (int i = 0; i < clients.size(); i++)
+	// 			send_error_page(429, clients[i], NULL);
+	// 	}
+	// 	else 
+	// 	{
+	// 		for (int i = 0; i < clients.size(); i++)
+	// 			send_error_page(500, clients[i], NULL);
+	// 	}
+	// 	exit(1);
+	// }
+	// this->reads = reads;
 
 void ServerManager::wait_to_client()
 {
-	int max = -1;
 	int recv;
-	fd_set reads = this->reads;
+	fd_set reads;
 
+	FD_ZERO(&reads);
 	for (int i = 0; i < servers.size(); i++)
 	{
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
@@ -173,8 +220,7 @@ void ServerManager::wait_to_client()
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
 	run_selectPoll(&reads);
-	this->max_fd = max;
-	this->reads = reads;
+	// this->reads = reads;
 }
 
 void ServerManager::drop_client(Client client)
@@ -215,7 +261,7 @@ void ServerManager::treat_request()
 {
 	for (int i = 0  ; i < clients.size() ; i++)
 	{
-		if (FD_ISSET(clients[i].get_socket(), &reads))
+		if (FD_ISSET(clients[i].get_socket(), reads))
 		{
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
@@ -311,9 +357,9 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 	std::cout << "send req" << '\n';
 	int FD_SET_check = 0;
 	
-	this->add_fd_selectPoll(cgi_read_fd, &this->reads);
-	this->run_selectPoll(&this->reads);
-	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &this->reads)) == 0) 
+	this->add_fd_selectPoll(cgi_read_fd, this->reads);
+	this->run_selectPoll(this->reads);
+	if ((FD_SET_check = FD_ISSET(cgi_read_fd, this->reads)) == 0) 
 	{
 		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
