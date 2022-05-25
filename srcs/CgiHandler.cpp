@@ -140,3 +140,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		return read_fd[0];
 	}
 }
+
+std::string& CgiHandler::get_file_resource(void) const {
+	return this->file_resource;
+}
