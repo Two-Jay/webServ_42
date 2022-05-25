@@ -8,13 +8,13 @@ class Response
 {
 private:
 	std::map<std::string, std::string> headers;
-	std::string body;
-	std::string status_code;
-	std::string status_phrase;
 
 	Response();
 
 public:
+	std::string status_code;
+	std::string status_phrase;
+	std::string body;
 	Response(std::string status);
 	~Response();
 

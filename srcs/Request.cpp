@@ -52,6 +52,10 @@ int Request::parsing(std::string request)
 			break;
 		i = end + 2;
 	}
+	if (headers["Host"] == "")
+		return 400;
+	if (headers["Expect"] != "")
+		return 417;
 	return 0;
 }
 

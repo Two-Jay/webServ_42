@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <cstdio>
 #include <sys/stat.h>
+#include <fstream>
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"

@@ -21,11 +21,26 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(411, "411 Length Required"));
 	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
 	status_info.insert(std::make_pair(414, "414 URI Too Long"));
+	status_info.insert(std::make_pair(417, "417 Expectation Failed"));
 	status_info.insert(std::make_pair(429, "429 Too Many Request"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
+
+	for (int i = 0; i < servers.size(); i++)
+	{
+		std::map<int, std::string>::iterator it;
+		for (it = servers[i].error_pages.begin(); it != servers[i].error_pages.end(); it++)
+		{
+			int status_code = it->first;
+			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
+			{
+				fprintf(stderr, "[ERROR] invalid status code on error_page\n");
+				exit(1);
+			}
+		}
+	}
 }
 
 ServerManager::~ServerManager()
@@ -129,12 +144,12 @@ void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
 		if (errno == EINVAL) 
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i]);
+				send_error_page(429, clients[i], NULL);
 		}
 		else 
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i]);
+				send_error_page(500, clients[i], NULL);
 		}
 		exit(1);
 	}
@@ -204,7 +219,7 @@ void ServerManager::treat_request()
 		{
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
-				send_error_page(400, clients[i]);
+				send_error_page(400, clients[i], NULL);
 				drop_client(clients[i]);
 				continue;
 			}
@@ -218,8 +233,8 @@ void ServerManager::treat_request()
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]." << std::endl;
 				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
 				if (errno == 2)
-					send_error_page(404, clients[i]);
-				send_error_page(500, clients[i]);
+					send_error_page(404, clients[i], NULL);
+				send_error_page(500, clients[i], NULL);
 				drop_client(clients[i]);
 				i--;
 			}
@@ -231,7 +246,7 @@ void ServerManager::treat_request()
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
 				{
-					send_error_page(error_code, clients[i]);
+					send_error_page(error_code, clients[i], NULL);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -239,7 +254,7 @@ void ServerManager::treat_request()
 				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
-					send_error_page(413, clients[i]);
+					send_error_page(413, clients[i], NULL);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -252,7 +267,7 @@ void ServerManager::treat_request()
 				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
 				if (!is_allowed_method(method_list, req.method))
 				{
-					send_405_error_page(405, clients[i], method_list);
+					send_error_page(405, clients[i], &method_list);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -407,35 +422,47 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	send(client.get_socket(), result.c_str(), result.size(), 0);
 }
 
-void ServerManager::send_error_page(int code, Client &client)
+void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
 {
 	std::cout << ">> send error page" << std::endl;
-	Response response(status_info[code]);
-	response.make_status_body();
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	response.append_header("Content-Type", "text/html");
+	std::ifstream page;
 
-	std::string result = response.serialize();
-	send(client.get_socket(), result.c_str(), result.size(), 0);
-}
-
-void ServerManager::send_405_error_page(int code, Client &client, std::vector<MethodType> allow_methods)
-{
-	std::cout << ">> send error page" << std::endl;
-	std::string allowed_method_list;
-	Response response(status_info[code]);
-	response.make_status_body();
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	response.append_header("Content-Type", "text/html");
-	for (int i = 0; i < allow_methods.size(); i++)
+	if (client.server->error_pages.find(code) != client.server->error_pages.end())
 	{
-		allowed_method_list += methodtype_to_s(allow_methods[i]);
-		if (i < allow_methods.size() - 1)
-			allowed_method_list += ", ";
+		page.open(client.server->error_pages[code]);
+		if (!page.is_open())
+			code = 404;
 	}
-	response.append_header("Allow", allowed_method_list);
+	Response response(status_info[code]);
+	if (page.is_open())
+	{
+		std::string body;
+		std::string line;
+		while (!page.eof())
+		{
+			getline(page, line);
+			body += line;
+			body += '\n';
+		}
+		response.body = body;
+		page.close();
+	}
+	else
+		response.make_status_body();
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Type", "text/html");
+	if (code == 405)
+	{
+		std::string allowed_method_list;
+		for (int i = 0; i < (*allow_methods).size(); i++)
+		{
+			allowed_method_list += methodtype_to_s((*allow_methods)[i]);
+			if (i < (*allow_methods).size() - 1)
+				allowed_method_list += ", ";
+		}
+		response.append_header("Allow", allowed_method_list);
+	}
 
 	std::string result = response.serialize();
 	send(client.get_socket(), result.c_str(), result.size(), 0);
@@ -491,7 +518,7 @@ void ServerManager::get_method(Client &client, std::string path)
 
 	if (path.length() >= MAX_URI_SIZE)
 	{
-		send_error_page(414, client);
+		send_error_page(414, client, NULL);
 		return;
 	}
 
@@ -515,7 +542,7 @@ void ServerManager::get_method(Client &client, std::string path)
 			flag = true;
 		if (!flag)
 		{
-			send_error_page(403, client);
+			send_error_page(403, client, NULL);
 			return;
 		}
 	}
@@ -542,14 +569,14 @@ void ServerManager::get_method(Client &client, std::string path)
 	FILE *fp = fopen(full_path.c_str(), "rb");
 	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
 	if (!fp)
-		send_error_page(404, client);
+		send_error_page(404, client, NULL);
 	else
 	{
 		if (full_path.back() == '/' && client.server->autoindex)
 			get_autoindex_page(client, path);
 		else if (S_ISDIR(buf.st_mode))
 		{
-			send_error_page(404, client);
+			send_error_page(404, client, NULL);
 			return;
 		}
 		else
@@ -585,7 +612,7 @@ void ServerManager::post_method(Client &client, Request &request)
 
 	if (request.headers.find("Content-Length") == request.headers.end())
 	{
-		send_error_page(411, client);
+		send_error_page(411, client, NULL);
 		return;
 	}
 
@@ -593,7 +620,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	size_t index = full_path.find_last_of("/");
 	if (index == std::string::npos)
 	{
-		send_error_page(500, client);
+		send_error_page(500, client, NULL);
 		return;
 	}
 	std::string file_name = full_path.substr(index + 1);
@@ -604,7 +631,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
-		send_error_page(500, client);
+		send_error_page(500, client, NULL);
 		return;
 	}
 
@@ -627,7 +654,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 	FILE *fp = fopen(full_path.c_str(), "r");
 	if (!fp)
 	{
-		send_error_page(204, client);
+		send_error_page(204, client, NULL);
 		return;
 	}
 	fclose(fp);
