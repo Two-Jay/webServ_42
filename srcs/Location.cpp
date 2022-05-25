@@ -48,3 +48,13 @@ std::string Location::getCgiBinary(std::string &extension) {
 	}
 	return "";
 }
+
+std::string Location::get_root(void)
+{
+	return this->root;
+}
+
+std::string Location::get_path(void)
+{
+	return this->path;
+}

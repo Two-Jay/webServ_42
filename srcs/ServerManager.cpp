@@ -110,30 +110,16 @@ void ServerManager::print_servers_info()
 ** Client methods
 */
 
-void ServerManager::wait_on_clients()
+void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
-	int max = -1;
-	int recv;
-	fd_set reads;
+	FD_ZERO(fds);
+	FD_SET(fd, fds);
+	if (this->max_fd) this->max_fd = fd;
+}
 
-	FD_ZERO(&reads);
-	for (int i = 0; i < servers.size(); i++)
-	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
-		{
-			FD_SET(servers[i].listen_socket[j], &reads);
-			if (max < servers[i].listen_socket[j])
-				max = servers[i].listen_socket[j];
-		}
-	}
-	
-	for (int i = 0; i < clients.size(); i++)
-	{
-		FD_SET(clients[i].get_socket(), &reads);
-		if (clients[i].get_socket() > max)
-			max = clients[i].get_socket();
-	}
-	if (select(max + 1, &reads, 0, 0, 0) < 0)
+void ServerManager::run_selectPoll(fd_set *reads)
+{
+	if (select(this->max_fd + 1, reads, 0, 0, 0) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL) 
@@ -148,6 +134,46 @@ void ServerManager::wait_on_clients()
 		}
 		exit(1);
 	}
+}
+
+void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
+{
+	if (select(this->max_fd + 1, reads, 0, 0, &tv) < 0)
+	{
+		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
+		if (errno == EINVAL) 
+		{
+			for (int i = 0; i < clients.size(); i++)
+				send_error_page(429, clients[i], NULL);
+		}
+		else 
+		{
+			for (int i = 0; i < clients.size(); i++)
+				send_error_page(500, clients[i], NULL);
+		}
+		exit(1);
+	}
+}
+
+void ServerManager::wait_to_client()
+{
+	int max = -1;
+	int recv;
+	fd_set reads = this->reads;
+
+	for (int i = 0; i < servers.size(); i++)
+	{
+		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		{
+			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
+		}
+	}
+	for (int i = 0; i < clients.size(); i++)
+	{
+		add_fd_selectPoll(clients[i].get_socket(), &reads);
+	}
+	run_selectPoll(&reads);
+	this->max_fd = max;
 	this->reads = reads;
 }
 
@@ -172,14 +198,15 @@ void ServerManager::drop_client(Client client)
 /*
 ** Response methods
 */
-
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		if (request->get_path().find(it->first) != std::string::npos)
+		std::cout << "get_path info : " << request->get_path().find(it->first) << std::endl;
+		if (request->get_path().find(it->first) != std::string::npos) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -237,41 +264,139 @@ void ServerManager::treat_request()
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::vector<MethodType> method_list;
-				loc ? method_list = loc->allow_methods : method_list = clients[i].server->allow_methods;
+				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
 				if (!is_allowed_method(method_list, req.method))
 				{
 					send_error_page(405, clients[i], &method_list);
 					drop_client(clients[i]);
 					continue;
 				}
-
 				std::cout << "Request: " << req;
 				if (loc && handle_CGI(&req, loc))
 				{
-					CgiHandler cgi(req);
-					cgi.cgi_exec(req, *loc);
-					return ;
+					CgiHandler cgi(req, *loc);
+					std::cout << cgi;
+					int read_fd = cgi.excute_CGI(req, *loc);
+					if (read_fd == -1)
+						send_error_page(404, clients[i], NULL);
+					if (is_response_timeout(clients[i]) == true)
+						send_error_page(408, clients[i], NULL);
+					else
+						send_cgi_response(clients[i], read_fd);
 				}
-				// body size 검사 해야함
-				// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
-				// Content_length 체크해서.
-				if (is_response_timeout(clients[i]) == true)
-					send_error_page(408, clients[i], NULL);
-				if (clients[i].server->redirect_status != -1)
-					send_redirection(clients[i], req.method);
-				else if (req.method == "GET")
-					get_method(clients[i], req.path);
-				else if (req.method == "POST")
-					post_method(clients[i], req);
-				else if (req.method == "DELETE")
-					delete_method(clients[i], req.path);
+				else
+				{
+					// body size 검사 해야함
+					// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
+					// Content_length 체크해서.
+					if (is_response_timeout(clients[i]) == true)
+						send_error_page(408, clients[i], NULL);
+					if (clients[i].server->redirect_status != -1)
+						send_redirection(clients[i], req.method);
+					else if (req.method == "GET")
+						get_method(clients[i], req.path);
+					else if (req.method == "POST")
+						post_method(clients[i], req);
+					else if (req.method == "DELETE")
+						delete_method(clients[i], req.path);
+				}
 				drop_client(clients[i]);
 			}
 		}
 	}
 }
 
-bool ServerManager::is_response_timeout(Client& client) {
+void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
+{
+	std::cout << "send req" << '\n';
+	int FD_SET_check = 0;
+	
+	this->add_fd_selectPoll(cgi_read_fd, &this->reads);
+	this->run_selectPoll(&this->reads);
+	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &this->reads)) == 0) 
+	{
+		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
+		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
+		send_error_page(500, client, NULL);
+		drop_client(client);
+	}
+	else
+	{
+		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
+		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
+		close(cgi_read_fd);
+		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
+		else
+		{
+			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			create_cgi_msg(res, cgi_ret, client);
+			std::string result = res.serialize();
+			std::cout << result;
+			send(client.get_socket(), result.c_str(), result.size(), 0);
+		} 
+	}
+}
+
+std::string ServerManager::read_with_timeout(int fd, int timeout_ms) {
+	int rbytes = 1;
+	struct timeval timeout_tv;
+	char cgi_buf[CGI_READ_BUFFER_SIZE];
+	memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
+	std::string ret;
+
+	timeout_tv.tv_sec = 0;
+	timeout_tv.tv_usec = 1000 * timeout_ms;
+	while (rbytes > 0) {
+		rbytes = read(fd, cgi_buf, CGI_READ_BUFFER_SIZE);
+		ret += cgi_buf;
+		memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
+	}
+	return ret;
+}
+
+std::string ServerManager::get_status_cgi(std::string& cgi_ret)
+{
+	std::string status_line;
+	std::stringstream ss(cgi_ret);
+
+	getline(ss, status_line, '\n');
+	cgi_ret.erase(0, status_line.length() + 1);
+	status_line.erase(0, 8);
+	status_line.erase(status_line.length() - 1, 1);
+	return status_line;
+}
+
+void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &client)
+{
+	std::stringstream ss(cgi_ret);
+	size_t tmpi;
+	std::string tmp;
+
+	res.append_header("Server", client.server->server_name);
+	res.append_header("Connection", "close");
+	while (getline(ss, tmp, '\n')) {
+		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+		size_t mid_deli = tmp.find(":");
+		size_t end_deli = tmp.find("\n");
+		if (tmp[end_deli] == '\r') {
+			tmp.erase(tmp.length() - 1, 1);
+			end_deli -= 1;
+		}
+		if ((tmpi = tmp.find(";")) != std::string::npos) {
+			tmp = tmp.substr(0, tmpi);
+		}
+		std::string key = tmp.substr(0, mid_deli);
+		std::string value = tmp.substr(mid_deli + 1, end_deli);
+		res.append_header(key, value);
+	}
+	getline(ss, tmp, '\n');
+	tmp.append("\n");
+	res.set_body(tmp);
+	res.append_header("Content-Length", std::to_string(res.get_body_size()));
+}
+
+bool ServerManager::is_response_timeout(Client& client)
+{
 	static timeval tv;
 	
 	gettimeofday(&tv, NULL);

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	manager.create_servers();
 	while (1)
 	{
-		manager.wait_on_clients();
+		manager.wait_to_client();
 		manager.accept_sockets();
 		manager.treat_request();
 	}

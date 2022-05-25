@@ -20,6 +20,7 @@ public:
 
 	void append_header(std::string first, std::string second);
 	int get_body_size();
+	void set_body(std::string& str);
 
 	void make_status_body();
 	void make_status_body(std::string url);

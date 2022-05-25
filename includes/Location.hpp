@@ -19,6 +19,8 @@ public:
 	~Location();
 
 	void print_location_info();
+	std::string get_root();
+	std::string get_path();
 	static MethodType s_to_methodtype(std::string str);
 	std::string getCgiBinary(std::string &extension);
 };
