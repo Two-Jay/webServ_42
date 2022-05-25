@@ -570,47 +570,6 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
-	// root path 검색해서 index찾는 부분 삭제 -> 502번째 줄에 다시 짜기
-	if (path == "/")
-	{
-		int flag = false;
-		// index page 중에 하나
-		std::string root = client.get_root_path(path);
-		for (int i = 0; i < client.server->index.size(); i++)
-		{
-			FILE *fp = fopen((root + "/" + client.server->index[i]).c_str(), "rb");
-			if (fp)
-			{
-				flag = true;
-				fclose(fp);
-				path = "/" + client.server->index[i];
-				break;
-			}
-		}
-		if (client.server->autoindex)
-			flag = true;
-		if (!flag)
-		{
-			send_error_page(403, client, NULL);
-			return;
-		}
-	}
-	else if (is_loc_check(path, client))
-	{
-		std::vector<std::string> loc = client.server->get_cur_location(path)->index;
-		for (int i = 0; i < loc.size();i++)
-		{
-			FILE *fp = fopen((client.server->get_cur_location(path)->root + "/" + loc[i]).c_str(), "rb");
-			if (fp)
-			{
-				fclose(fp);
-				path = "/" + loc[i];
-				break;
-			}
-		}
-	}
-	// std::cout << "path: " << path << "\n";
-
 	char *dir_list;
 	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
@@ -624,16 +583,44 @@ void ServerManager::get_method(Client &client, std::string path)
 		if (S_ISDIR(buf.st_mode))
 		{
 			if (client.server->autoindex)
+			{
 				get_autoindex_page(client, path);
-			// else
-			// {
-			// 	// directory + index file name 절대경로 만들어주고 index page fopen
-
-			// 	// fopen 안되면
-			// 	// 403 error
-			// 	// return
-			// }
+				fclose(fp);
+				return;
+			}
+			else
+			{
+				bool flag = false;
+				Location *loc = client.server->get_cur_location(path);
+				std::vector<std::string> indexes;
+				if (loc)
+					indexes = loc->index;
+				else
+					indexes = client.server->index;
+				if (full_path.back() != '/')
+					full_path.append("/");
+				for (int i = 0; i < indexes.size(); i++)
+				{
+					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
+					if (fp)
+					{
+						flag = true;
+						fclose(fp);
+						full_path.append(indexes[i]);
+						flag = true;
+						break;
+					}
+				}
+				if (!flag)
+				{
+					send_error_page(403, client, NULL);
+					fclose(fp);
+					return;
+				}
+			}
 		}
+		fclose(fp);
+		fp = fopen(full_path.c_str(), "rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t length = ftell(fp);
 		rewind(fp);
