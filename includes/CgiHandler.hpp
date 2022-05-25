@@ -1,8 +1,6 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
-#include <iostream>
-#include <map>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/wait.h> 

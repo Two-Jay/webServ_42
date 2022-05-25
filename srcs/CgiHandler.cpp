@@ -41,7 +41,8 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->env["CONTENT_LENGTH"] = "-1";
-	if (request.method == "GET") {
+	if (request.method == "GET")
+	{
 		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
 		char buffer[BUFFER_SIZE];
 		int r = BUFFER_SIZE;
@@ -55,7 +56,8 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	loc.print_location_info();
 }
 
-std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc) {
+std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
+{
 	std::string ret;
 	char *pwd = getcwd(NULL, 0);
 	std::string loc_root = loc.get_root();
@@ -77,7 +79,8 @@ char** CgiHandler::set_env()
 	if (!envp)
 		return NULL;
 	int i = 0;
-	for(std::map<std::string, std::string>::iterator it = env.begin(); it != env.end(); ++it) {
+	for(std::map<std::string, std::string>::iterator it = env.begin(); it != env.end(); ++it)
+	{
 		envp[i] = strdup((it->first + "=" + it->second).c_str());
 		++i;
 	}
@@ -85,15 +88,10 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-#include <sys/types.h> 
-#include <sys/wait.h> 
-#include <signal.h>
-
 static void kill_child(int sig)
 {
     kill(-1,SIGKILL);
 }
-
 
 int CgiHandler::excute_CGI(Request &Request, Location &loc)
 {
@@ -116,10 +114,11 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		std::string extension = Request.get_path().substr(Request.get_path().find(".") + 1);
 		char *av[3] = { const_cast<char*>(loc.getCgiBinary(extension).c_str()), 
 		const_cast<char*>(loc.root.c_str()), NULL};
-		if (env) {
-			std::cerr << "av[0] : " << av[0] << std::endl;
-			std::cerr << "av[0] : " << av[1] << std::endl;
-			std::cerr << "cgi run....................." << std::endl;
+		if (env)
+		{
+			std::cerr << ">> av[0] : " << av[0] << "\n";
+			std::cerr << ">> av[1] : " << av[1] << "\n";
+			std::cerr << ">> cgi run.....................\n";
 			ret1 = execve(av[0], av, env);
 		}
 		exit(1);
@@ -137,8 +136,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		}
 		int status;
 		waitpid(pid, &status, 0);
-		std::cerr << "cgi done....................." << std::endl;
+		std::cerr << ">> cgi done.....................\n";
 		return read_fd[0];
 	}
 }
-

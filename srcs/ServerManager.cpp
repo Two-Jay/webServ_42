@@ -77,7 +77,7 @@ void ServerManager::accept_sockets()
 					fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
 					exit(1);
 				}
-				std::cout << "> New Connection from [" << client.get_client_address() << "]." << std::endl;
+				std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
 			}
 		}
 	}
@@ -94,16 +94,14 @@ void ServerManager::close_servers()
 
 void ServerManager::print_servers_info()
 {
-	std::cout << std::endl;
-	std::cout << "=================================================" << std::endl;
-	std::cout << "            Total Server Informations            " << std::endl;
-	std::cout << "=================================================" << std::endl;
+	std::cout << "\n=================================================\n";
+	std::cout << "            Total Server Informations            \n";
+	std::cout << "=================================================\n";
 	for (int i = 0; i < servers.size(); i++)
 	{
 		servers[i].print_server_info();
 	}
-	std::cout << "=================================================" << std::endl;
-	std::cout << std::endl;
+	std::cout << "=================================================\n\n";
 }
 
 /*
@@ -139,7 +137,6 @@ void ServerManager::run_selectPoll(fd_set *reads)
 		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
 	this->reads = *reads;
-	std::cout << "select done ......................................." << std::endl;;
 }
 
 void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
@@ -160,47 +157,7 @@ void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
 		exit(1);
 	}
 	this->reads = *reads;
-	std::cout << "select done ......................................." << std::endl;;
 }
-
-
-	// int max = -1;
-	// int recv;
-	// fd_set reads;
-
-	// FD_ZERO(&reads);
-	// for (int i = 0; i < servers.size(); i++)
-	// {
-	// 	for (int j = 0; j < servers[i].listen_socket.size(); j++)
-	// 	{
-	// 		FD_SET(servers[i].listen_socket[j], &reads);
-	// 		if (max < servers[i].listen_socket[j])
-	// 			max = servers[i].listen_socket[j];
-	// 	}
-	// }
-	
-	// for (int i = 0; i < clients.size(); i++)
-	// {
-	// 	FD_SET(clients[i].get_socket(), &reads);
-	// 	if (clients[i].get_socket() > max)
-	// 		max = clients[i].get_socket();
-	// }
-	// if (select(max + 1, &reads, 0, 0, 0) < 0)
-	// {
-	// 	fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-	// 	if (errno == EINVAL) 
-	// 	{
-	// 		for (int i = 0; i < clients.size(); i++)
-	// 			send_error_page(429, clients[i], NULL);
-	// 	}
-	// 	else 
-	// 	{
-	// 		for (int i = 0; i < clients.size(); i++)
-	// 			send_error_page(500, clients[i], NULL);
-	// 	}
-	// 	exit(1);
-	// }
-	// this->reads = reads;
 
 void ServerManager::wait_to_client()
 {
@@ -220,12 +177,10 @@ void ServerManager::wait_to_client()
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
 	run_selectPoll(&reads);
-	// this->reads = reads;
 }
 
 void ServerManager::drop_client(Client client)
 {
-	std::cout << "!! drop client !!\n";
 	close(client.get_socket());
 
 	std::vector<Client>::iterator iter;
@@ -249,10 +204,8 @@ bool ServerManager::handle_CGI(Request *request, Location *loc)
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		std::cout << "get_path info : " << request->get_path().find(it->first) << std::endl;
-		if (request->get_path().find(it->first) != std::string::npos) {
+		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
-		}
 	}
 	return false;
 }
@@ -276,7 +229,7 @@ void ServerManager::treat_request()
 			int recv_size = clients[i].get_received_size();
 			if (r < 1)
 			{
-				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]." << std::endl;
+				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
 				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
 				if (errno == 2)
 					send_error_page(404, clients[i], NULL);
@@ -287,7 +240,6 @@ void ServerManager::treat_request()
 			else if (clients[i].request[recv_size - 4] == '\r' && clients[i].request[recv_size - 3] == '\n'
 				&& clients[i].request[recv_size - 2] == '\r' && clients[i].request[recv_size - 1] == '\n')
 			{
-				std::cout << "199: " << clients[i].request << "\n";
 				Request req = Request(clients[i].get_socket());
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
@@ -305,7 +257,6 @@ void ServerManager::treat_request()
 					continue;
 				}
 
-				// clients[i].set_received_size(clients[i].get_received_size() + r);
 				clients[i].request[clients[i].get_received_size()] = 0;
 
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
@@ -317,11 +268,10 @@ void ServerManager::treat_request()
 					drop_client(clients[i]);
 					continue;
 				}
-				std::cout << "Request: " << req;
+				
 				if (loc && handle_CGI(&req, loc))
 				{
 					CgiHandler cgi(req, *loc);
-					std::cout << cgi;
 					int read_fd = cgi.excute_CGI(req, *loc);
 					if (read_fd == -1)
 						send_error_page(404, clients[i], NULL);
@@ -332,9 +282,6 @@ void ServerManager::treat_request()
 				}
 				else
 				{
-					// body size 검사 해야함
-					// 클라이언트 바디 리미트 넘어가면 413번 넘어가야함
-					// Content_length 체크해서.
 					if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i], NULL);
 					if (clients[i].server->redirect_status != -1)
@@ -354,14 +301,12 @@ void ServerManager::treat_request()
 
 void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 {
-	std::cout << "send req" << '\n';
 	int FD_SET_check = 0;
 	
 	this->add_fd_selectPoll(cgi_read_fd, &(this->reads));
 	this->run_selectPoll(&(this->reads));
 	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &(this->reads))) == 0) 
 	{
-		std::cout << "FD_ISSET result = " << FD_SET_check << '\n';
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
 		send_error_page(500, client, NULL);
 		drop_client(client);
@@ -369,7 +314,6 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 	else
 	{
 		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
-		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
 		close(cgi_read_fd);
 		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
 		else
@@ -377,8 +321,8 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
 			create_cgi_msg(res, cgi_ret, client);
 			std::string result = res.serialize();
-			std::cout << result;
 			send(client.get_socket(), result.c_str(), result.size(), 0);
+			std::cout << ">> cgi responsed\n";
 		} 
 	}
 }
@@ -453,7 +397,7 @@ bool ServerManager::is_response_timeout(Client& client)
 
 void ServerManager::send_redirection(Client &client, std::string request_method)
 {
-	std::cout << ">> send redirection response" << std::endl;
+	std::cout << ">> send redirection response\n";
 	Response response(status_info[client.server->redirect_status]);
 	if (client.server->redirect_status == 300)
 		response.make_status_body(client.server->redirect_url);
@@ -472,7 +416,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 
 void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
 {
-	std::cout << ">> send error page" << std::endl;
+	std::cout << "> send error page\n";
 	std::ifstream page;
 
 	if (client.server->error_pages.find(code) != client.server->error_pages.end())
@@ -549,21 +493,14 @@ bool is_loc_check(std::string path, Client &client)
 	if (!cur_loc)
 		return false;
 	std::string root = cur_loc->path;
-	std::cout << "loc_check\n";
-	std::cout << "path: " << path << ", root: " << root << "\n";
 	if (path == root)
-	{
-		// path.append("/" + root);
 		return true;
-	}
 	return false;
 }
 
 void ServerManager::get_method(Client &client, std::string path)
 {
 	std::cout << "GET method\n";
-	std::cout << "path: " << path << "\n";
-
 	if (path.length() >= MAX_URI_SIZE)
 	{
 		send_error_page(414, client, NULL);
@@ -575,7 +512,7 @@ void ServerManager::get_method(Client &client, std::string path)
 	std::string full_path = find_path_in_root(path, client);
 	lstat(full_path.c_str(), &buf);
 	FILE *fp = fopen(full_path.c_str(), "rb");
-	std::cout << ">> " + full_path + ", " + (fp == NULL ? "not found" : "found") << std::endl;
+	std::cout << "> " + full_path + ", " + (fp == NULL ? "not found\n" : "found\n");
 	if (!fp)
 		send_error_page(404, client, NULL);
 	else
@@ -681,15 +618,15 @@ void ServerManager::post_method(Client &client, Request &request)
 	response.append_header("Connection", "close");
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
+	std::cout << "> " << full_path << " posted\n";
 }
 
 void ServerManager::delete_method(Client &client, std::string path)
 {
 	std::cout << "DELETE method\n";
 	std::string full_path = find_path_in_root(path, client);
-	std::cout << full_path << std::endl;
+	std::cout << full_path << "\n";
 
-	std::cout << full_path << std::endl;
 	FILE *fp = fopen(full_path.c_str(), "r");
 	if (!fp)
 	{
@@ -704,6 +641,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 
 	std::string header = response.make_header();
 	send(client.get_socket(), header.c_str(), header.size(), 0);
+	std::cout << "> " << full_path << " deleted\n";
 }
 
 /*

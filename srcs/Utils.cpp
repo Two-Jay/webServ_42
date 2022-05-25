@@ -10,7 +10,6 @@ int replace(std::string &original, std::string word1, std::string word2)
 		original = original.replace(pos, word1.length(), word2);
 		pos = original.find(word1);
 	}
-	std::cout << "replace: " << original << "\n";
 	return result;
 }
 
@@ -28,7 +27,6 @@ std::string dir_listing()
 			+ (std::string)ent->d_name + "<\\a><\\li>";
 	}
 	result += "</ul>";
-	std::cout << "dir: " << result << "\n";
 	return result;
 }
 

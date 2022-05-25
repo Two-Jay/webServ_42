@@ -23,7 +23,7 @@ int Request::parsing(std::string request)
 	int i;
 	int j;
 
-	std::cout << "> request parsing" << std::endl;
+	std::cout << "> request parsing\n";
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	// nginx에서 curl로 보냈을 때 리퀘스트 메소드가 모두 영문대문자가 아니면 400 에러반환함

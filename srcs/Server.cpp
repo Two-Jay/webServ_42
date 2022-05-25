@@ -33,7 +33,7 @@ void Server::create_socket()
 		memset(bind_addr, 0, sizeof(struct addrinfo*));
 		getaddrinfo(host.c_str(), port[i].c_str(), &hints, &bind_addr);
 
-		std::cout << "> Creating socket..." << std::endl;
+		std::cout << "> Creating socket...\n";
 		int socket_listen = socket(bind_addr->ai_family,
 				bind_addr->ai_socktype, bind_addr->ai_protocol);
 		fcntl(socket_listen, F_SETFL, O_NONBLOCK);
@@ -42,7 +42,7 @@ void Server::create_socket()
 			fprintf(stderr, "socket() failed. (%d)\n", errno);
 			exit(1);
 		}
-		std::cout << "> Binding socket to local address..." << std::endl;
+		std::cout << "> Binding socket to local address...\n";
 		if (bind(socket_listen, bind_addr->ai_addr, bind_addr->ai_addrlen))
 		{
 			fprintf(stderr, "bind() failed. (%d)\n", errno);
@@ -50,30 +50,30 @@ void Server::create_socket()
 			exit(1);
 		}
 		freeaddrinfo(bind_addr);
-		std::cout << "> Listening..." << std::endl;
+		std::cout << "> Listening...\n";
 		if (listen(socket_listen, 10) < 0)
 		{
 			fprintf(stderr, "listen() failed. (%d)\n", errno);
 			exit(1);
 		}
 		this->listen_socket.push_back(socket_listen);
-		std::cout << "> Socket successfully added!" << std::endl;
+		std::cout << "> Socket successfully added!\n";
 	}
 }
 
 void Server::print_server_info()
 {
-	std::cout << "------------------ Server Info ------------------" << std::endl;
-	std::cout << "> server_name: " << server_name << std::endl;
-	std::cout << "> host: " << host << std::endl;
-	std::cout << "> port: " << port << std::endl;
+	std::cout << "------------------ Server Info ------------------\n";
+	std::cout << "> server_name: " << server_name << "\n";
+	std::cout << "> host: " << host << "\n";
+	std::cout << "> port: " << port << "\n";
 	if (redirect_status == -1)
 	{
-		std::cout << "> root: " << root << std::endl;
-		std::cout << "> client_body_limit: " << client_body_limit << std::endl;
-		std::cout << "> autoindex: " << (autoindex ? "on" : "off") << std::endl;
-		std::cout << "> index: " << index << std::endl;
-		std::cout << "> allow_methods: " << allow_methods << std::endl;
+		std::cout << "> root: " << root << "\n";
+		std::cout << "> client_body_limit: " << client_body_limit << "\n";
+		std::cout << "> autoindex: " << (autoindex ? "on\n" : "off\n");
+		std::cout << "> index: " << index << "\n";
+		std::cout << "> allow_methods: " << allow_methods << "\n";
 		for (int i = 0; i < locations.size(); i++)
 		{
 			locations[i].print_location_info();
@@ -81,10 +81,10 @@ void Server::print_server_info()
 	}
 	else
 	{
-		std::cout << "> redirect_status: " << redirect_status << std::endl;
-		std::cout << "> redirect_url: " << redirect_url << std::endl;
+		std::cout << "> redirect_status: " << redirect_status << "\n";
+		std::cout << "> redirect_url: " << redirect_url << "\n";
 	}
-	std::cout << "-------------------------------------------------" << std::endl;
+	std::cout << "-------------------------------------------------\n";
 }
 
 MethodType Server::s_to_methodtype(std::string str)
