@@ -613,7 +613,7 @@ void ServerManager::get_method(Client &client, std::string path)
 				}
 				if (!flag)
 				{
-					send_error_page(403, client, NULL);
+					send_error_page(404, client, NULL);
 					fclose(fp);
 					return;
 				}
