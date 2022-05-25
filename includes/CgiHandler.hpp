@@ -10,6 +10,10 @@
 class CgiHandler {
 	private:
 		std::map<std::string, std::string> env;
+		FILE *resource_p;
+		std::string file_resource;
+		size_t file_size;
+
 	public:
 		CgiHandler(Request &request, Location& loc);
 		char** set_env();

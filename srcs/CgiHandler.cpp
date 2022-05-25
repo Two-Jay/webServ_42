@@ -23,7 +23,6 @@
 CgiHandler::CgiHandler(Request &request, Location& loc)
 {
 	this->env["AUTH_TYPE"] = "";
-	this->env["CONTENT_LENGTH"] = "-1";
 	this->env["CONTENT_TYPE"] = request.headers["Content-Type"];
 	this->env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->env["PATH_INFO"] = request.get_path();
@@ -41,6 +40,18 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
+	this->env["CONTENT_LENGTH"] = "-1";
+	if (request.method == "GET") {
+		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
+		char buffer[BUFFER_SIZE];
+		int r = BUFFER_SIZE;
+		while ((r = fread(buffer, 1, BUFFER_SIZE, this->resource_p)) > 0)
+		{
+			file_resource += buffer;
+		}
+		file_size = file_resource.size();
+		this->env["CONTENT_LENGTH"] = std::to_string(file_size);
+	}
 	loc.print_location_info();
 }
 
@@ -85,7 +96,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 	int pid;
 	int ret1 = pipe(read_fd);
 
-	if (ret1 < 0 || pipe(write_fd) < 0) return -1;
+	if (ret1 < 0 || pipe(write_fd) < 0 || !resource_p) return -1;
 	pid = fork();
 	if (pid < 0) return -1;
 	else if (pid == 0)
@@ -110,6 +121,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 	{
 		close(write_fd[0]);
 		close(read_fd[1]);
+		write(write_fd[1], file_resource.c_str(), file_size);	
 		int status;
 		waitpid(pid, &status, 0);
 		std::cerr << "cgi done....................." << std::endl;

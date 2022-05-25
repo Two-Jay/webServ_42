@@ -308,7 +308,7 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
 		std::cout << "cgi_result_______________________\n" << cgi_ret << "\n________________________________\n"; 
 		close(cgi_read_fd);
-		if (cgi_ret.compare("cgi: failed") != 0) send_error_page(400, client);
+		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client);
 		else
 		{
 			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
