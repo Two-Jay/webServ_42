@@ -524,6 +524,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
+	// root path 검색해서 index찾는 부분 삭제 -> 502번째 줄에 다시 짜기
 	if (path == "/")
 	{
 		int flag = false;
@@ -574,35 +575,38 @@ void ServerManager::get_method(Client &client, std::string path)
 		send_error_page(404, client, NULL);
 	else
 	{
-		if (full_path.back() == '/' && client.server->autoindex)
-			get_autoindex_page(client, path);
-		else if (S_ISDIR(buf.st_mode))
+		if (S_ISDIR(buf.st_mode))
 		{
-			send_error_page(404, client, NULL);
-			return;
+			if (client.server->autoindex)
+				get_autoindex_page(client, path);
+			// else
+			// {
+			// 	// directory + index file name 절대경로 만들어주고 index page fopen
+
+			// 	// fopen 안되면
+			// 	// 403 error
+			// 	// return
+			// }
 		}
-		else
+		fseek(fp, 0L, SEEK_END);
+		size_t length = ftell(fp);
+		rewind(fp);
+		const char *type = find_content_type(full_path.c_str());
+
+		Response response(status_info[200]);
+		response.append_header("Connection", "close");
+		response.append_header("Content-Length", std::to_string(length));
+		response.append_header("Content-Type", type);
+
+		std::string header = response.make_header();
+		send(client.get_socket(), header.c_str(), header.size(), 0);
+
+		char buffer[BSIZE];
+		int r = fread(buffer, 1, BSIZE, fp);
+		while (r)
 		{
-			fseek(fp, 0L, SEEK_END);
-			size_t length = ftell(fp);
-			rewind(fp);
-			const char *type = find_content_type(full_path.c_str());
-
-			Response response(status_info[200]);
-			response.append_header("Connection", "close");
-			response.append_header("Content-Length", std::to_string(length));
-			response.append_header("Content-Type", type);
-
-			std::string header = response.make_header();
-			send(client.get_socket(), header.c_str(), header.size(), 0);
-
-			char buffer[BSIZE];
-			int r = fread(buffer, 1, BSIZE, fp);
-			while (r)
-			{
-				send(client.get_socket(), buffer, r, 0);
-				r = fread(buffer, 1, BSIZE, fp);
-			}
+			send(client.get_socket(), buffer, r, 0);
+			r = fread(buffer, 1, BSIZE, fp);
 		}
 	}
 	fclose(fp);
