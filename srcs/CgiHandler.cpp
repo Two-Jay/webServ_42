@@ -87,6 +87,12 @@ char** CgiHandler::set_env()
 
 #include <sys/types.h> 
 #include <sys/wait.h> 
+#include <signal.h>
+
+static void kill_child(int sig)
+{
+    kill(-1,SIGKILL);
+}
 
 
 int CgiHandler::excute_CGI(Request &Request, Location &loc)
@@ -97,6 +103,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 	int ret1 = pipe(read_fd);
 
 	if (ret1 < 0 || pipe(write_fd) < 0 || !resource_p) return -1;
+	signal(SIGALRM,(void (*)(int))kill_child);
 	pid = fork();
 	if (pid < 0) return -1;
 	else if (pid == 0)
@@ -119,12 +126,19 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 	}
 	else
 	{
+		
 		close(write_fd[0]);
 		close(read_fd[1]);
-		write(write_fd[1], file_resource.c_str(), file_size);	
+		int wbyte = write(write_fd[1], file_resource.c_str(), file_size);
+		if (wbyte == -1) {
+			alarm(30);
+			wait(NULL);
+			return -1;
+		}
 		int status;
 		waitpid(pid, &status, 0);
 		std::cerr << "cgi done....................." << std::endl;
 		return read_fd[0];
 	}
 }
+
