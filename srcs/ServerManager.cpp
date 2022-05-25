@@ -619,6 +619,8 @@ void ServerManager::get_method(Client &client, std::string path)
 				}
 			}
 		}
+		fclose(fp);
+		fp = fopen(full_path.c_str(), "rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t length = ftell(fp);
 		rewind(fp);
