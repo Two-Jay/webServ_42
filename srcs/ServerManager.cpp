@@ -277,9 +277,10 @@ void ServerManager::treat_request()
 			if (r < 1)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]." << std::endl;
-				fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
-				if (errno == 2)
-					send_error_page(404, clients[i], NULL);
+				std::cout << "recv failed\n";
+				// fprintf(stderr, "[ERROR] recv() failed. (%d)%s\n", errno, strerror(errno));
+				// if (r < 0)
+				// 	send_error_page(404, clients[i], NULL);
 				send_error_page(500, clients[i], NULL);
 				drop_client(clients[i]);
 				i--;
