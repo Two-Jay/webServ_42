@@ -183,6 +183,7 @@ void ServerManager::drop_client(Client client)
 {
 	close(client.get_socket());
 
+	std::cout << "drop client!\n";
 	std::vector<Client>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -539,7 +540,6 @@ void ServerManager::get_method(Client &client, std::string path)
 					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
 					if (fp)
 					{
-						flag = true;
 						fclose(fp);
 						full_path.append(indexes[i]);
 						flag = true;
