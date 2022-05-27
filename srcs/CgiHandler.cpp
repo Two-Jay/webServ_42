@@ -21,6 +21,11 @@
 // server_protocol : HTTP/1.1
 // server_software : webserv/1.0
 
+static void set_signal_kill_child_process(int sig)
+{
+    kill(-1,SIGKILL);
+}
+
 CgiHandler::CgiHandler(Request &request, Location& loc)
 {
 	this->env["AUTH_TYPE"] = "";
@@ -57,7 +62,7 @@ void CgiHandler::load_file_resource() {
 	{
 		this->file_resource += buffer;
 	}
-	this->env["CONTENT_LENGTH"] = std::to_string(file_size);
+	this->env["CONTENT_LENGTH"] = std::to_string(this->file_resource.size());
 }
 
 std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
@@ -92,7 +97,7 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-int* CgiHandler::excute_CGI(Request &Request, Location &loc)
+int CgiHandler::excute_CGI(Request &Request, Location &loc)
 {
 	int read_fd[2];
 	int write_fd[2];
@@ -100,7 +105,7 @@ int* CgiHandler::excute_CGI(Request &Request, Location &loc)
 	int ret1 = pipe(read_fd);
 
 	if (ret1 < 0 || pipe(write_fd) < 0 || !resource_p) return -1;
-	signal(SIGALRM,(void (*)(int))kill_child);
+	signal(SIGALRM,(void (*)(int))set_signal_kill_child_process);
 	pid = fork();
 	if (pid < 0) return -1;
 	else if (pid == 0)
@@ -125,17 +130,11 @@ int* CgiHandler::excute_CGI(Request &Request, Location &loc)
 		close(read_fd[1]);
 		set_pipe_write_fd(write_fd[1]);
 		set_pipe_read_fd(read_fd[0]);
-		// int wbyte = write(write_fd[1], file_resource.c_str(), file_size);
-		// if (wbyte == -1) {
-		// 	alarm(30);
-		// 	wait(NULL);
-		// 	return -1;
-		// }
-		// signal(SIGALRM, SIG_DFL);
+		return 0;
 	}
 }
 
-std::string& CgiHandler::get_file_resource(void) const {
+std::string& CgiHandler::get_file_resource(void) {
 	return this->file_resource;
 }
 
@@ -155,7 +154,7 @@ void CgiHandler::set_pipe_read_fd(int fd) {
 	this->pipe_rfd = fd;
 };
 
-std::string& CgiHandler::read_from_CGI_process(int timeout_ms) {
+std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	int rbytes = 1;
 	struct timeval timeout_tv;
 	char buf[CGI_READ_BUFFER_SIZE];
@@ -191,7 +190,3 @@ int CgiHandler::write_to_CGI_process() {
 	}
 };
 
-static void set_signal_kill_child_process(int sig)
-{
-    kill(-1,SIGKILL);
-}

@@ -21,6 +21,7 @@ private:
 	std::vector<Client> clients;
 	int max_fd;
 	fd_set reads;
+	fd_set writes;
 
 	std::map<int, std::string> status_info;
 
@@ -43,8 +44,7 @@ public:
 
 private:
 	void add_fd_selectPoll(int fd, fd_set* fds);
-	void run_selectPoll(fd_set *reads);
-	void run_selectPoll(fd_set *reads, struct timeval &tv);
+	void run_selectPoll(fd_set *reads, fd_set *writes);
 	void send_cgi_response(Client& client, int cgi_read_fd);
 	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods);
 	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);

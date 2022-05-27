@@ -110,16 +110,15 @@ void ServerManager::print_servers_info()
 
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
-
 	FD_SET(fd, fds);
 	if (this->max_fd < fd) this->max_fd = fd;
 }
 
-void ServerManager::run_selectPoll(fd_set *reads)
+void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 {
 	int ret = 0;
 
-	if ((ret = select(this->max_fd + 1, reads, 0, 0, 0)) < 0)
+	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL)
@@ -137,34 +136,18 @@ void ServerManager::run_selectPoll(fd_set *reads)
 		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
 	this->reads = *reads;
+	this->writes = *writes;
 }
 
-void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
-{
-	if (select(this->max_fd + 1, reads, 0, 0, &tv) < 0)
-	{
-		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-		if (errno == EINVAL) 
-		{
-			for (int i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i], NULL);
-		}
-		else 
-		{
-			for (int i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i], NULL);
-		}
-		exit(1);
-	}
-	this->reads = *reads;
-}
 
 void ServerManager::wait_to_client()
 {
 	int recv;
 	fd_set reads;
+	fd_set writes;
 
 	FD_ZERO(&reads);
+	FD_ZERO(&writes);
 	for (int i = 0; i < servers.size(); i++)
 	{
 		for (int j = 0; j < servers[i].listen_socket.size(); j++)
@@ -176,7 +159,7 @@ void ServerManager::wait_to_client()
 	{
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
-	run_selectPoll(&reads);
+	run_selectPoll(&reads, &writes);
 }
 
 void ServerManager::drop_client(Client client)
@@ -302,7 +285,7 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 	int FD_SET_check = 0;
 	
 	this->add_fd_selectPoll(cgi_read_fd, &(this->reads));
-	this->run_selectPoll(&(this->reads));
+	this->run_selectPoll(&(this->reads), &(this->writes));
 	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &(this->reads))) == 0) 
 	{
 		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
