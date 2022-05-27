@@ -701,7 +701,10 @@ void ServerManager::get_autoindex_page(Client &client, std::string path)
 		std::cout << "file name: " << file->d_name << "\n";
 		if (file->d_name == "." || file->d_name == "..")
 			result += "<a href=\"" + path + "/" + file->d_name;
-		result += "<a href=\"" + path + "/" + file->d_name;
+		else if (path[path.length() - 1] == '/')
+			result += "<a href=\"" + path + file->d_name;
+		else
+			result += "<a href=\"" + path + "/" + file->d_name;
 		result += (file->d_type == DT_DIR ? "/" : "") + (std::string)"\">";
 		result += (std::string)(file->d_name) + (file->d_type == DT_DIR ? "/" : "") + "</a><br>";
 	}
