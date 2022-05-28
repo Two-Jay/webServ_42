@@ -61,9 +61,7 @@ void ServerManager::create_servers()
 {
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
-	{
 		(*it).second->create_socket();
-	}
 }
 
 void ServerManager::accept_sockets()
@@ -106,6 +104,12 @@ void ServerManager::print_servers_info()
 	std::cout << "=================================================\n";
 	std::cout << "            Total Server Informations            \n";
 	std::cout << "=================================================\n";
+	std::map<std::string, Server*>::iterator it;
+	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	{
+		std::cout << (*it).first << " -> ";
+		std::cout << (*it).second->host << ":" << (*it).second->port << "\n";
+	}
 	for (int i = 0; i < servers.size(); i++)
 	{
 		servers[i].print_server_info();
