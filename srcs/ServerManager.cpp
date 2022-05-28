@@ -119,16 +119,15 @@ void ServerManager::print_servers_info()
 
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
-
 	FD_SET(fd, fds);
 	if (this->max_fd < fd) this->max_fd = fd;
 }
 
-void ServerManager::run_selectPoll(fd_set *reads)
+void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 {
 	int ret = 0;
 
-	if ((ret = select(this->max_fd + 1, reads, 0, 0, 0)) < 0)
+	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL)
@@ -146,34 +145,18 @@ void ServerManager::run_selectPoll(fd_set *reads)
 		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
 	this->reads = *reads;
+	this->writes = *writes;
 }
 
-void ServerManager::run_selectPoll(fd_set *reads, struct timeval &tv)
-{
-	if (select(this->max_fd + 1, reads, 0, 0, &tv) < 0)
-	{
-		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-		if (errno == EINVAL) 
-		{
-			for (int i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i], NULL);
-		}
-		else 
-		{
-			for (int i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i], NULL);
-		}
-		exit(1);
-	}
-	this->reads = *reads;
-}
 
 void ServerManager::wait_to_client()
 {
 	int recv;
 	fd_set reads;
+	fd_set writes;
 
 	FD_ZERO(&reads);
+	FD_ZERO(&writes);
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
@@ -186,7 +169,7 @@ void ServerManager::wait_to_client()
 	{
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
-	run_selectPoll(&reads);
+	run_selectPoll(&reads, &writes);
 }
 
 void ServerManager::drop_client(Client client)
@@ -287,7 +270,7 @@ void ServerManager::treat_request()
 					if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i], NULL);
 					else
-						send_cgi_response(clients[i], read_fd);
+						send_cgi_response(clients[i], cgi);
 				}
 				else
 				{
@@ -308,49 +291,53 @@ void ServerManager::treat_request()
 	}
 }
 
-void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
+static void set_signal_kill_child_process(int sig)
 {
-	int FD_SET_check = 0;
-	
-	this->add_fd_selectPoll(cgi_read_fd, &(this->reads));
-	this->run_selectPoll(&(this->reads));
-	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &(this->reads))) == 0) 
-	{
-		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
-		send_error_page(500, client, NULL);
-		drop_client(client);
-	}
-	else
-	{
-		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
-		close(cgi_read_fd);
-		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
-		else
-		{
-			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
-			create_cgi_msg(res, cgi_ret, client);
-			std::string result = res.serialize();
-			send(client.get_socket(), result.c_str(), result.size(), 0);
-			std::cout << ">> cgi responsed\n";
-		} 
-	}
+    kill(-1,SIGKILL);
 }
 
-std::string ServerManager::read_with_timeout(int fd, int timeout_ms) {
-	int rbytes = 1;
-	struct timeval timeout_tv;
-	char cgi_buf[CGI_READ_BUFFER_SIZE];
-	memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
-	std::string ret;
-
-	timeout_tv.tv_sec = 0;
-	timeout_tv.tv_usec = 1000 * timeout_ms;
-	while (rbytes > 0) {
-		rbytes = read(fd, cgi_buf, CGI_READ_BUFFER_SIZE);
-		ret += cgi_buf;
-		memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
+void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
+{
+	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
+	{
+		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		signal(SIGALRM, set_signal_kill_child_process);
+		alarm(30);
+		signal(SIGALRM, SIG_DFL);
+		close(ch.get_pipe_write_fd());
+		send_error_page(500, client, NULL);
+		drop_client(client);
+		return ;
 	}
-	return ret;
+	ch.write_to_CGI_process();
+	FD_ZERO(&this->writes);
+	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
+	{
+		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		close(ch.get_pipe_write_fd());
+		send_error_page(500, client, NULL);
+		drop_client(client);
+		return ;
+	}
+	std::string cgi_ret = ch.read_from_CGI_process(10);
+	close(ch.get_pipe_read_fd());
+	close(ch.get_pipe_write_fd());
+	std::cout << "successfully read\n";
+	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
+	else
+	{
+		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+		create_cgi_msg(res, cgi_ret, client);
+		std::string result = res.serialize();
+		send(client.get_socket(), result.c_str(), result.size(), 0);
+		std::cout << ">> cgi responsed\n";
+	}
 }
 
 std::string ServerManager::get_status_cgi(std::string& cgi_ret)
@@ -530,6 +517,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		{
 			if (client.server->autoindex)
 			{
+				std::cout << "autoindex true\n";
 				get_autoindex_page(client, path);
 				fclose(fp);
 				return;
@@ -692,20 +680,28 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 
 void ServerManager::get_autoindex_page(Client &client, std::string path)
 {
-	std::string addr;
+	std::cout << "path: " << path << "\n";
+	std::cout << "root path: " << client.get_root_path(path) << "\n";
+	std::string addr = client.get_root_path(path) + "/";
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
 	result += path;
 	result += "<hr><div>";
 
 	DIR *dir = NULL;
-	if ((dir = opendir((client.get_root_path(path) + path).c_str())) == NULL)
+	if ((dir = opendir(addr.c_str())) == NULL)
 		return;
 
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
 	{
-		result += "<a href=\"" + addr + file->d_name;
+		std::cout << "file name: " << file->d_name << "\n";
+		if (file->d_name == "." || file->d_name == "..")
+			result += "<a href=\"" + path + "/" + file->d_name;
+		else if (path[path.length() - 1] == '/')
+			result += "<a href=\"" + path + file->d_name;
+		else
+			result += "<a href=\"" + path + "/" + file->d_name;
 		result += (file->d_type == DT_DIR ? "/" : "") + (std::string)"\">";
 		result += (std::string)(file->d_name) + (file->d_type == DT_DIR ? "/" : "") + "</a><br>";
 	}
