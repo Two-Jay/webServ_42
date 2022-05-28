@@ -166,6 +166,7 @@ void ServerManager::drop_client(Client client)
 {
 	close(client.get_socket());
 
+	std::cout << "drop client!\n";
 	std::vector<Client>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -500,6 +501,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		{
 			if (client.server->autoindex)
 			{
+				std::cout << "autoindex true\n";
 				get_autoindex_page(client, path);
 				fclose(fp);
 				return;
@@ -520,7 +522,6 @@ void ServerManager::get_method(Client &client, std::string path)
 					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
 					if (fp)
 					{
-						flag = true;
 						fclose(fp);
 						full_path.append(indexes[i]);
 						flag = true;
@@ -663,20 +664,28 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 
 void ServerManager::get_autoindex_page(Client &client, std::string path)
 {
-	std::string addr;
+	std::cout << "path: " << path << "\n";
+	std::cout << "root path: " << client.get_root_path(path) << "\n";
+	std::string addr = client.get_root_path(path) + "/";
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
 	result += path;
 	result += "<hr><div>";
 
 	DIR *dir = NULL;
-	if ((dir = opendir((client.get_root_path(path) + path).c_str())) == NULL)
+	if ((dir = opendir(addr.c_str())) == NULL)
 		return;
 
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
 	{
-		result += "<a href=\"" + addr + file->d_name;
+		std::cout << "file name: " << file->d_name << "\n";
+		if (file->d_name == "." || file->d_name == "..")
+			result += "<a href=\"" + path + "/" + file->d_name;
+		else if (path[path.length() - 1] == '/')
+			result += "<a href=\"" + path + file->d_name;
+		else
+			result += "<a href=\"" + path + "/" + file->d_name;
 		result += (file->d_type == DT_DIR ? "/" : "") + (std::string)"\">";
 		result += (std::string)(file->d_name) + (file->d_type == DT_DIR ? "/" : "") + "</a><br>";
 	}
