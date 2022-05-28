@@ -185,9 +185,12 @@ void ServerManager::drop_client(Client client)
 */
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
+	std::cout << "handle_cgi\n";
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
+		std::cout << "get_path: " << request->get_path() << "\n";
+		std::cout << "it->first: " << it->first << "\n"; 
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}
@@ -253,6 +256,7 @@ void ServerManager::treat_request()
 				
 				if (loc && handle_CGI(&req, loc))
 				{
+					std::cout << "cgi\n";
 					CgiHandler cgi(req, *loc);
 					int read_fd = cgi.excute_CGI(req, *loc);
 					if (read_fd == -1)

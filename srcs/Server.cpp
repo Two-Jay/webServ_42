@@ -30,7 +30,7 @@ void Server::create_socket()
 	struct addrinfo *bind_addr;
 	for (int i = 0; i < port.size(); i++)
 	{
-		memset(bind_addr, 0, sizeof(struct addrinfo*));
+		// memset(bind_addr, 0, sizeof(struct addrinfo*));
 		getaddrinfo(host.c_str(), port[i].c_str(), &hints, &bind_addr);
 
 		std::cout << "> Creating socket...\n";
