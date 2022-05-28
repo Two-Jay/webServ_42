@@ -62,7 +62,7 @@ void CgiHandler::load_file_resource() {
 	{
 		this->file_resource += buffer;
 	}
-	this->env["CONTENT_LENGTH"] = std::to_string(this->file_resource.size());
+	this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 }
 
 std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)

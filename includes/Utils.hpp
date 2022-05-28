@@ -38,4 +38,14 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2> &op)
 	return out;
 }
 
+#include <sstream>
+
+template <typename T>
+std::string NumberToString ( T Number )
+{
+	std::ostringstream ss;
+	ss << Number;
+	return ss.str();
+}
+
 #endif

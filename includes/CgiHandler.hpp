@@ -5,8 +5,10 @@
 #include <sys/types.h> 
 #include <sys/wait.h> 
 #include <signal.h>
+#include "Utils.hpp"
 #include "Request.hpp"
 #include "Location.hpp"
+
 
 #define BUFFER_SIZE 100
 
