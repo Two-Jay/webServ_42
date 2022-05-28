@@ -31,6 +31,7 @@ class CgiHandler {
 			}
 			return out;
 		}
+		
 		std::string get_target_file_fullpath(Request& req, Location& loc);
 		std::string& get_file_resource(void);
 

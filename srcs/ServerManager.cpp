@@ -259,7 +259,7 @@ void ServerManager::treat_request()
 					if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i], NULL);
 					else
-						send_cgi_response(clients[i], read_fd);
+						send_cgi_response(clients[i], cgi);
 				}
 				else
 				{
@@ -280,22 +280,37 @@ void ServerManager::treat_request()
 	}
 }
 
-void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
+void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 {
-	int FD_SET_check = 0;
-	
-	this->add_fd_selectPoll(cgi_read_fd, &(this->reads));
+	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
+	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
 	this->run_selectPoll(&(this->reads), &(this->writes));
-	if ((FD_SET_check = FD_ISSET(cgi_read_fd, &(this->reads))) == 0) 
+	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		fprintf(stderr, "[ERROR] failed. (%d)%s\n", errno, strerror(errno));
+		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		close(ch.get_pipe_write_fd());
 		send_error_page(500, client, NULL);
 		drop_client(client);
+		return ;
+	}
+	ch.write_to_CGI_process();
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
+	{
+		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		close(ch.get_pipe_write_fd());
+		send_error_page(500, client, NULL);
+		drop_client(client);
+		return ;
 	}
 	else
 	{
-		std::string cgi_ret = this->read_with_timeout(cgi_read_fd, 10);
-		close(cgi_read_fd);
+		std::string cgi_ret = ch.read_from_CGI_process(10);
+		close(ch.get_pipe_read_fd());
+		close(ch.get_pipe_write_fd());
+		std::cout << "successfully read\n";
 		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
 		else
 		{
@@ -304,25 +319,8 @@ void ServerManager::send_cgi_response(Client& client, int cgi_read_fd)
 			std::string result = res.serialize();
 			send(client.get_socket(), result.c_str(), result.size(), 0);
 			std::cout << ">> cgi responsed\n";
-		} 
-	}
-}
-
-std::string ServerManager::read_with_timeout(int fd, int timeout_ms) {
-	int rbytes = 1;
-	struct timeval timeout_tv;
-	char cgi_buf[CGI_READ_BUFFER_SIZE];
-	memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
-	std::string ret;
-
-	timeout_tv.tv_sec = 0;
-	timeout_tv.tv_usec = 1000 * timeout_ms;
-	while (rbytes > 0) {
-		rbytes = read(fd, cgi_buf, CGI_READ_BUFFER_SIZE);
-		ret += cgi_buf;
-		memset(cgi_buf, 0x00, CGI_READ_BUFFER_SIZE);
-	}
-	return ret;
+		}
+	} 
 }
 
 std::string ServerManager::get_status_cgi(std::string& cgi_ret)
