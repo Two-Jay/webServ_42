@@ -59,9 +59,17 @@ ServerManager::~ServerManager()
 
 void ServerManager::create_servers()
 {
+	std::map<std::string, int> ports;
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
-		(*it).second->create_socket();
+	{
+		if (ports[(*it).second->port] == 0)
+		{
+			std::cout << "> Server : " << (*it).first << "\n";
+			(*it).second->create_socket();
+			ports[(*it).second->port]++;
+		}
+	}
 }
 
 void ServerManager::accept_sockets()
@@ -106,14 +114,7 @@ void ServerManager::print_servers_info()
 	std::cout << "=================================================\n";
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
-	{
-		std::cout << (*it).first << " -> ";
-		std::cout << (*it).second->host << ":" << (*it).second->port << "\n";
-	}
-	for (int i = 0; i < servers.size(); i++)
-	{
-		servers[i].print_server_info();
-	}
+		(*it).second->print_server_info();
 	std::cout << "=================================================\n";
 }
 
@@ -197,6 +198,7 @@ void ServerManager::drop_client(Client client)
 /*
 ** Response methods
 */
+
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
@@ -519,6 +521,7 @@ void ServerManager::get_method(Client &client, std::string path)
 	{
 		if (S_ISDIR(buf.st_mode))
 		{
+			std::cout << "directory\n";
 			if (client.server->autoindex)
 			{
 				std::cout << "autoindex true\n";

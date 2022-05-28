@@ -23,7 +23,7 @@ void Server::create_socket()
 {
 	struct addrinfo hints, *info;
 
-	std::cout << "> Get address informations..." << host << ":" << port << "\n";
+	std::cout << "> Get address informations...\n";
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
