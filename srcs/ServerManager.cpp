@@ -284,7 +284,6 @@ void ServerManager::treat_request()
 void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 {
 	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
-	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
@@ -296,6 +295,8 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 		return ;
 	}
 	ch.write_to_CGI_process();
+	FD_ZERO(&this->writes);
+	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
@@ -306,22 +307,19 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 		drop_client(client);
 		return ;
 	}
+	std::string cgi_ret = ch.read_from_CGI_process(10);
+	close(ch.get_pipe_read_fd());
+	close(ch.get_pipe_write_fd());
+	std::cout << "successfully read\n";
+	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
 	else
 	{
-		std::string cgi_ret = ch.read_from_CGI_process(10);
-		close(ch.get_pipe_read_fd());
-		close(ch.get_pipe_write_fd());
-		std::cout << "successfully read\n";
-		if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
-		else
-		{
-			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
-			create_cgi_msg(res, cgi_ret, client);
-			std::string result = res.serialize();
-			send(client.get_socket(), result.c_str(), result.size(), 0);
-			std::cout << ">> cgi responsed\n";
-		}
-	} 
+		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+		create_cgi_msg(res, cgi_ret, client);
+		std::string result = res.serialize();
+		send(client.get_socket(), result.c_str(), result.size(), 0);
+		std::cout << ">> cgi responsed\n";
+	}
 }
 
 std::string ServerManager::get_status_cgi(std::string& cgi_ret)
