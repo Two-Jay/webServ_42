@@ -67,9 +67,7 @@ std::string Request::get_path()
 		return path;
 	if (i == -1)
 		i = path.length();
-	std::cout << "path: " << path << "  i: " << i << "\n";
-	std::cout << "substr: " << path.substr(0, i - 1) << "\n";
-	return path.substr(0, i - 1);
+	return path.substr(0, i);
 }
 
 std::string Request::get_query()
@@ -77,7 +75,7 @@ std::string Request::get_query()
 	int i = path.find_first_of("?", 0);
 	if (i == std::string::npos)
 		return "";
-	return path.substr(i, path.size() - i);
+	return path.substr(i + 1, path.size() - i);
 }
 
 bool Request::is_not_method(const std::string method) {
