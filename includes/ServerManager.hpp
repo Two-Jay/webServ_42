@@ -18,6 +18,7 @@ class ServerManager
 {
 private:
 	std::vector<Server> servers;
+	std::map<std::string, Server*> servers_id;
 	std::vector<Client> clients;
 	int max_fd;
 	fd_set reads;

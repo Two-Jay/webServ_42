@@ -40,6 +40,12 @@ ServerManager::ServerManager(std::vector<Server> servers)
 				exit(1);
 			}
 		}
+		if (!servers_id[servers[i].server_name + servers[i].port])
+			servers_id[servers[i].server_name + servers[i].port] = &servers[i];
+		else
+		{
+			std::cout << "! already exist server block !\n";
+		}
 	}
 }
 
@@ -53,23 +59,25 @@ ServerManager::~ServerManager()
 
 void ServerManager::create_servers()
 {
-	for (int i = 0; i < servers.size(); i++)
+	std::map<std::string, Server*>::iterator it;
+	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
-		servers[i].create_socket();
+		(*it).second->create_socket();
 	}
 }
 
 void ServerManager::accept_sockets()
 {
 	int server;
-	for (int i = 0; i < servers.size(); i++)
+	std::map<std::string, Server*>::iterator it;
+	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
 		{
-			server = servers[i].listen_socket[j];
+			server = (*it).second->listen_socket[j];
 			if (FD_ISSET(server, &reads))
 			{
-				clients.push_back(Client(&servers[i]));
+				clients.push_back(Client((*it).second));
 				Client &client = clients.back();
 				client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 				if (client.get_socket() < 0)
@@ -85,23 +93,24 @@ void ServerManager::accept_sockets()
 
 void ServerManager::close_servers()
 {
-	for (int i = 0; i < servers.size(); i++)
+	std::map<std::string, Server*>::iterator it;
+	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
-			close(servers[i].listen_socket[j]);
+		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
+			close((*it).second->listen_socket[j]);
 	}
 }
 
 void ServerManager::print_servers_info()
 {
-	std::cout << "\n=================================================\n";
+	std::cout << "=================================================\n";
 	std::cout << "            Total Server Informations            \n";
 	std::cout << "=================================================\n";
 	for (int i = 0; i < servers.size(); i++)
 	{
 		servers[i].print_server_info();
 	}
-	std::cout << "=================================================\n\n";
+	std::cout << "=================================================\n";
 }
 
 /*
@@ -165,11 +174,12 @@ void ServerManager::wait_to_client()
 	fd_set reads;
 
 	FD_ZERO(&reads);
-	for (int i = 0; i < servers.size(); i++)
+	std::map<std::string, Server*>::iterator it;
+	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
 		{
-			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
+			add_fd_selectPoll((*it).second->listen_socket[j], &reads);
 		}
 	}
 	for (int i = 0; i < clients.size(); i++)

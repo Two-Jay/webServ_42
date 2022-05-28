@@ -157,7 +157,7 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 		if (server->host != "" && server->host != tmp[0])
 			return FAILED;
 		server->host = tmp[0];
-		server->port.push_back(tmp[1]);
+		server->port = tmp[1];
 	}
 	else if (key == "root")
 	{

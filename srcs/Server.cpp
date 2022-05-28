@@ -28,37 +28,34 @@ void Server::create_socket()
 	hints.ai_flags = AI_PASSIVE;
 
 	struct addrinfo *bind_addr;
-	for (int i = 0; i < port.size(); i++)
-	{
-		memset(bind_addr, 0, sizeof(struct addrinfo*));
-		getaddrinfo(host.c_str(), port[i].c_str(), &hints, &bind_addr);
+	memset(bind_addr, 0, sizeof(struct addrinfo*));
+	getaddrinfo(host.c_str(), port.c_str(), &hints, &bind_addr);
 
-		std::cout << "> Creating socket...\n";
-		int socket_listen = socket(bind_addr->ai_family,
-				bind_addr->ai_socktype, bind_addr->ai_protocol);
-		fcntl(socket_listen, F_SETFL, O_NONBLOCK);
-		if (socket_listen < 0)
-		{
-			fprintf(stderr, "socket() failed. (%d)\n", errno);
-			exit(1);
-		}
-		std::cout << "> Binding socket to local address...\n";
-		if (bind(socket_listen, bind_addr->ai_addr, bind_addr->ai_addrlen))
-		{
-			fprintf(stderr, "bind() failed. (%d)\n", errno);
-			perror("bind");
-			exit(1);
-		}
-		freeaddrinfo(bind_addr);
-		std::cout << "> Listening...\n";
-		if (listen(socket_listen, 10) < 0)
-		{
-			fprintf(stderr, "listen() failed. (%d)\n", errno);
-			exit(1);
-		}
-		this->listen_socket.push_back(socket_listen);
-		std::cout << "> Socket successfully added!\n";
+	std::cout << "> Creating socket...\n";
+	int socket_listen = socket(bind_addr->ai_family,
+			bind_addr->ai_socktype, bind_addr->ai_protocol);
+	fcntl(socket_listen, F_SETFL, O_NONBLOCK);
+	if (socket_listen < 0)
+	{
+		fprintf(stderr, "socket() failed. (%d)\n", errno);
+		exit(1);
 	}
+	std::cout << "> Binding socket to local address...\n";
+	if (bind(socket_listen, bind_addr->ai_addr, bind_addr->ai_addrlen))
+	{
+		fprintf(stderr, "bind() failed. (%d)\n", errno);
+		perror("bind");
+		exit(1);
+	}
+	freeaddrinfo(bind_addr);
+	std::cout << "> Listening...\n";
+	if (listen(socket_listen, 10) < 0)
+	{
+		fprintf(stderr, "listen() failed. (%d)\n", errno);
+		exit(1);
+	}
+	this->listen_socket.push_back(socket_listen);
+	std::cout << "> Socket successfully added!\n";
 }
 
 void Server::print_server_info()

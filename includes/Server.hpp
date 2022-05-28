@@ -27,7 +27,7 @@ public:
 
 public:
 	std::string host;
-	std::vector<std::string> port;
+	std::string port;
 	
 	std::vector<int> listen_socket;
 	std::vector<int> fd;//??
