@@ -65,6 +65,10 @@ std::string Request::get_path()
 	int i = path.find_first_of("?", 0);
 	if (i == std::string::npos)
 		return path;
+	if (i == -1)
+		i = path.length();
+	std::cout << "path: " << path << "  i: " << i << "\n";
+	std::cout << "substr: " << path.substr(0, i - 1) << "\n";
 	return path.substr(0, i - 1);
 }
 
