@@ -48,4 +48,13 @@ std::string NumberToString ( T Number )
 	return ss.str();
 }
 
+const class NullPtrType {
+		void *size_member;
+	public :
+		template <class T> operator T*() { return 0; };
+		template <class T, class C> operator T C::*() { return 0; };
+	private :
+		void operator& () const;
+} NullPtr = {};
+
 #endif
