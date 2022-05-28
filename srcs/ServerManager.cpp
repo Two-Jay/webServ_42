@@ -281,6 +281,11 @@ void ServerManager::treat_request()
 	}
 }
 
+static void set_signal_kill_child_process(int sig)
+{
+    kill(-1,SIGKILL);
+}
+
 void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 {
 	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
@@ -289,6 +294,9 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 	{
 		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
 		close(ch.get_pipe_read_fd());
+		signal(SIGALRM, set_signal_kill_child_process);
+		alarm(30);
+		signal(SIGALRM, SIG_DFL);
 		close(ch.get_pipe_write_fd());
 		send_error_page(500, client, NULL);
 		drop_client(client);
