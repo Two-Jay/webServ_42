@@ -186,6 +186,7 @@ void ServerManager::drop_client(Client client)
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
 	std::cout << "handle_cgi\n";
+	loc->print_location_info();
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
@@ -589,6 +590,40 @@ void ServerManager::post_method(Client &client, Request &request)
 		send_error_page(500, client, NULL);
 		return;
 	}
+	if (chuncked_check() == true && handle_POST_chunked_request_body(full_path) == false)
+	{
+		send_error_page(500, client, NULL);
+		return ;
+	}
+	else if (handle_POST_request_body(full_path) == false)
+	{
+		send_error_page(500, client, NULL);
+		return ;
+	}
+	Response response(status_info[201]);
+	response.append_header("Connection", "close");
+	std::string header = response.make_header();
+	send(client.get_socket(), header.c_str(), header.size(), 0);
+	std::cout << "> " << full_path << " posted\n";
+}
+
+// chuncked request 처리 전략
+// 1. header 에서 chunked request 처리를 요구하는 지 체크한다.
+// 2. 체크 한 뒤 응답 이전에 분기처리
+// 3.
+
+// 헤더에서 chunked request 요구하는 거 체크하고
+// 트루값 리턴
+// 아니라면 펄즈 리턴
+static bool chuncked_check (Request& req) {
+	return false;
+};
+
+static void handle_POST_chunked_request_body(std::string& full_path) {
+	return ;
+}
+
+static bool handle_POST_request_body(std::string& full_path) {
 	std::string file_name = full_path.substr(index + 1);
 	std::string folder_path = full_path.substr(0, index);
 
@@ -597,23 +632,12 @@ void ServerManager::post_method(Client &client, Request &request)
 	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
-		send_error_page(500, client, NULL);
-		return;
+		return false;
 	}
-
 	fwrite(request.body.c_str(), request.body.size(), 1, fp);
 	fclose(fp);
-	
-	Response response(status_info[201]);
-	response.append_header("Connection", "close");
-	std::string header = response.make_header();
-	send(client.get_socket(), header.c_str(), header.size(), 0);
-	std::cout << "> " << full_path << " posted\n";
+	return true;
 }
-
-int chuncked_check (Request& req) {
-	return 0;
-};
 
 void ServerManager::delete_method(Client &client, std::string path)
 {
