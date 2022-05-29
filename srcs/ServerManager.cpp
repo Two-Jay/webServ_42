@@ -616,7 +616,7 @@ void ServerManager::post_method(Client &client, Request &request)
 // 트루값 리턴
 // 아니라면 펄즈 리턴
 static bool chuncked_check (Request& req) {
-	return false;
+	return (req.headers.find("Transfer-Encoding") == "chunked") ? true : false;
 };
 
 static void handle_POST_chunked_request_body(std::string& full_path) {
