@@ -612,16 +612,6 @@ void ServerManager::post_method(Client &client, Request &request)
 	std::cout << "> " << full_path << " posted\n";
 }
 
-// chuncked request 처리 전략
-// 1. header 에서 chunked request 처리를 요구하는 지 체크한다.
-// 2. 체크 한 뒤 응답 이전에 분기처리
-// 3.
-
-// 헤더에서 chunked request 요구하는 거 체크하고
-// 트루값 리턴
-// 아니라면 펄즈 리턴
-
-
 void ServerManager::delete_method(Client &client, std::string path)
 {
 	std::cout << "DELETE method\n";
