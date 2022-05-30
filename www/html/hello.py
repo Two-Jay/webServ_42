@@ -17,4 +17,3 @@ if os.getenv('QUERY_STRING') != None:
 html_text += '</body>\n</html>\n'
 
 print (html_text)
-출처: https://kibua20.tistory.com/107 [모바일 SW 개발자가 운영하는 블로그:티스토리]
