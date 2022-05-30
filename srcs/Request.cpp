@@ -18,7 +18,30 @@ std::string Request::get_port() {
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
-// static bool check_protocol(std::string )
+static bool check_protocol(std::map<std::string, std::string>::mapped_type& parsed) {
+	if (parsed != "HTTP/1.1") return false;
+	return true;
+}
+
+static std::string handle_request_body_chunked(std::string& request) {
+	std::string ret;
+    std::size_t size = 1, whole_body_size = 0;
+    std::string line = request;
+    while (true) {
+        line = line.erase(0, 2);
+        size = atoi(line.substr(0, line.find("\r\n")).c_str());
+		if (size == 0) break ;
+        line = line.erase(0, line.find("\r\n") + 2);
+        std::string msg = line.substr(0, line.find("\r\n"));
+        line.erase(0, msg.size());
+		ret += msg;
+    }
+	return ret;
+}
+
+static std::string handle_request_body(std::string& request, int index) {
+	return request.substr(index + 2, request.size());
+}
 
 int Request::parsing(std::string request)
 {
@@ -36,20 +59,18 @@ int Request::parsing(std::string request)
 		return 400;
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
-	if (headers["HTTP"] != "HTTP/1.1")
-		return 505;
+	if (check_protocol(headers["HTTP"]) == false) return 505;
 	i = request.find_first_of("\n", j) + 1;
-
-	// 현재는 아래에서 행마다 다 체크하고,
-	// 헤더와 바디를 한 함수 한 반복문 안에서 파싱하는 걸 구현함
-	// 헤더의 기능과 파싱의 기능을 분리해야함
 	while (i < request.size())
 	{
 		if (request[i] == '\r' && request[i + 1] == '\0')
 			break;
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
-			this->body = request.substr(i + 2, request.size());
+			if (headers["Transfer-Encoding"] == "chunked")
+				this->body = handle_request_body_chunked(request);
+			else
+				this->body = handle_request_body(request, i);
 			break;
 		}
 		int deli = request.find_first_of(":", i);
