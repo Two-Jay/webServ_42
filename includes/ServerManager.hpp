@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include <fstream>
+#include <string.h>
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"

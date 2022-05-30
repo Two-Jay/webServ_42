@@ -215,6 +215,7 @@ void ServerManager::treat_request()
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
 			int recv_size = clients[i].get_received_size();
+			char *reqt = clients[i].request;
 			if (r < 1)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
@@ -223,8 +224,7 @@ void ServerManager::treat_request()
 				drop_client(clients[i]);
 				i--;
 			}
-			else if (clients[i].request[recv_size - 4] == '\r' && clients[i].request[recv_size - 3] == '\n'
-				&& clients[i].request[recv_size - 2] == '\r' && clients[i].request[recv_size - 1] == '\n')
+			else if (strstr(reqt, "\r\n\r\n"))
 			{
 				Request req = Request(clients[i].get_socket());
 				int error_code;
