@@ -7,6 +7,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <map>
+#include <sstream>
 #include <ctime>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -38,8 +39,6 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2> &op)
 	return out;
 }
 
-#include <sstream>
-
 template <typename T>
 std::string NumberToString ( T Number )
 {
@@ -48,6 +47,7 @@ std::string NumberToString ( T Number )
 	return ss.str();
 }
 
+typedef
 const class NullPtrType {
 		void *size_member;
 	public :
@@ -55,6 +55,6 @@ const class NullPtrType {
 		template <class T, class C> operator T C::*() { return 0; };
 	private :
 		void operator& () const;
-} NullPtr = {};
+} NullPtr;
 
 #endif

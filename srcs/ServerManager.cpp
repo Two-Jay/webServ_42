@@ -573,6 +573,30 @@ void ServerManager::get_method(Client &client, std::string path)
 	fclose(fp);
 }
 
+static bool chuncked_check (Request& req) {
+	return (req.headers.find("Transfer-Encoding")->second == "chunked") ? true : false;
+};
+
+static bool handle_POST_chunked_request_body(std::string& full_path) {
+	return true;
+}
+
+static bool handle_POST_request_body(Request& request, std::string& full_path, size_t index) {
+	std::string file_name = full_path.substr(index + 1);
+	std::string folder_path = full_path.substr(0, index);
+
+	std::string command = "mkdir -p " + folder_path;
+	system(command.c_str());
+	FILE *fp = fopen(full_path.c_str(), "w");
+	if (!fp)
+	{
+		return false;
+	}
+	fwrite(request.body.c_str(), request.body.size(), 1, fp);
+	fclose(fp);
+	return true;
+}
+
 void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
@@ -590,12 +614,12 @@ void ServerManager::post_method(Client &client, Request &request)
 		send_error_page(500, client, NULL);
 		return;
 	}
-	if (chuncked_check() == true && handle_POST_chunked_request_body(full_path) == false)
+	if (chuncked_check(request) == true && handle_POST_chunked_request_body(full_path) == false)
 	{
 		send_error_page(500, client, NULL);
 		return ;
 	}
-	else if (handle_POST_request_body(full_path) == false)
+	else if (handle_POST_request_body(request, full_path, index) == false)
 	{
 		send_error_page(500, client, NULL);
 		return ;
@@ -615,29 +639,7 @@ void ServerManager::post_method(Client &client, Request &request)
 // 헤더에서 chunked request 요구하는 거 체크하고
 // 트루값 리턴
 // 아니라면 펄즈 리턴
-static bool chuncked_check (Request& req) {
-	return (req.headers.find("Transfer-Encoding") == "chunked") ? true : false;
-};
 
-static void handle_POST_chunked_request_body(std::string& full_path) {
-	return ;
-}
-
-static bool handle_POST_request_body(std::string& full_path) {
-	std::string file_name = full_path.substr(index + 1);
-	std::string folder_path = full_path.substr(0, index);
-
-	std::string command = "mkdir -p " + folder_path;
-	system(command.c_str());
-	FILE *fp = fopen(full_path.c_str(), "w");
-	if (!fp)
-	{
-		return false;
-	}
-	fwrite(request.body.c_str(), request.body.size(), 1, fp);
-	fclose(fp);
-	return true;
-}
 
 void ServerManager::delete_method(Client &client, std::string path)
 {

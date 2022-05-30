@@ -18,6 +18,8 @@ std::string Request::get_port() {
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
+// static bool check_protocol(std::string )
+
 int Request::parsing(std::string request)
 {
 	int i;
@@ -37,6 +39,10 @@ int Request::parsing(std::string request)
 	if (headers["HTTP"] != "HTTP/1.1")
 		return 505;
 	i = request.find_first_of("\n", j) + 1;
+
+	// 현재는 아래에서 행마다 다 체크하고,
+	// 헤더와 바디를 한 함수 한 반복문 안에서 파싱하는 걸 구현함
+	// 헤더의 기능과 파싱의 기능을 분리해야함
 	while (i < request.size())
 	{
 		if (request[i] == '\r' && request[i + 1] == '\0')
