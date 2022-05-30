@@ -34,6 +34,7 @@ static std::string parse_request_body_chunked(std::string& request) {
         line = line.erase(0, line.find("\r\n") + 2);
         std::string msg = line.substr(0, line.find("\r\n"));
         line.erase(0, msg.size());
+		whole_body_size += size;
 		ret += msg;
     }
 	return ret;

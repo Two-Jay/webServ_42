@@ -291,18 +291,24 @@ static void set_signal_kill_child_process(int sig)
     kill(-1,SIGKILL);
 }
 
+static void handle_error_cgi(CgiHandler& ch, bool isComplete) {
+	if (isComplete == false) {
+		fprintf(stderr, "[ERROR] cgi failed. (%d)%s\n", errno, strerror(errno));
+		signal(SIGALRM, set_signal_kill_child_process);
+		alarm(30);
+		signal(SIGALRM, SIG_DFL);
+	}
+	close(ch.get_pipe_read_fd());
+	close(ch.get_pipe_write_fd());
+}
+
 void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 {
 	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
-		close(ch.get_pipe_read_fd());
-		signal(SIGALRM, set_signal_kill_child_process);
-		alarm(30);
-		signal(SIGALRM, SIG_DFL);
-		close(ch.get_pipe_write_fd());
+		handle_error_cgi(ch, false);
 		send_error_page(500, client, NULL);
 		drop_client(client);
 		return ;
@@ -313,17 +319,13 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
-		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
-		close(ch.get_pipe_read_fd());
-		close(ch.get_pipe_write_fd());
+		handle_error_cgi(ch, false);
 		send_error_page(500, client, NULL);
 		drop_client(client);
 		return ;
 	}
 	std::string cgi_ret = ch.read_from_CGI_process(10);
-	close(ch.get_pipe_read_fd());
-	close(ch.get_pipe_write_fd());
-	std::cout << "successfully read\n";
+	handle_error_cgi(ch, true);
 	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
 	else
 	{
