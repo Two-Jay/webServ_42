@@ -56,12 +56,15 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 
 void CgiHandler::load_file_resource() {
 	this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
-	char buffer[CGI_RESOURCE_BUFFER_SIZE];
+	char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
+	memset(buffer, 0x00, CGI_RESOURCE_BUFFER_SIZE);
 	int r = CGI_RESOURCE_BUFFER_SIZE;
 	while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
 	{
 		this->file_resource += buffer;
+		memset(buffer, 0x00, CGI_RESOURCE_BUFFER_SIZE + 1);
 	}
+	std::cerr << this->file_resource;
 	this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 }
 
@@ -168,6 +171,7 @@ std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 		ret += buf;
 		memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
 	}
+	// std::cerr << "cgi result size : " << ret.size() << "\ncgi result : [" << ret << "]\n";
 	return ret;
 };
 
