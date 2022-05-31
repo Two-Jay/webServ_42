@@ -160,7 +160,7 @@ void CgiHandler::set_pipe_read_fd(int fd) {
 std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	int rbytes = 1;
 	struct timeval timeout_tv;
-	char buf[CGI_READ_BUFFER_SIZE];
+	char buf[CGI_READ_BUFFER_SIZE + 1];
 	memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
 	std::string ret;
 
@@ -169,7 +169,7 @@ std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	while (rbytes > 0) {
 		rbytes = read(this->get_pipe_read_fd(), buf, CGI_READ_BUFFER_SIZE);
 		ret += buf;
-		memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
+		memset(buf, 0x00, CGI_READ_BUFFER_SIZE + 1);
 	}
 	// std::cerr << "cgi result size : " << ret.size() << "\ncgi result : [" << ret << "]\n";
 	return ret;
