@@ -374,6 +374,7 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 	std::stringstream ss(cgi_ret);
 	size_t tmpi;
 	std::string tmp;
+	std::string body;
 
 	res.append_header("Server", client.server->server_name);
 	res.append_header("Connection", "close");
@@ -392,9 +393,11 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 		std::string value = tmp.substr(mid_deli + 1, end_deli);
 		res.append_header(key, value);
 	}
-	getline(ss, tmp, '\n');
-	tmp.append("\n");
-	res.set_body(tmp);
+	while (getline(ss, tmp, '\n')) {
+		body += tmp;
+		body += "\n";
+	}
+	res.set_body(body);
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
 
