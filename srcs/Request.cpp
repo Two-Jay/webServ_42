@@ -2,7 +2,7 @@
 
 Request::Request(int client_fd)
 {
-	client_fd = client_fd;
+	this->client_fd = client_fd;
 }
 
 Request::~Request()
@@ -20,7 +20,7 @@ std::string Request::get_port() {
 
 int Request::parsing(std::string request)
 {
-	int i;
+	unsigned long i;
 	int j;
 
 	std::cout << "> request parsing\n";
@@ -30,7 +30,7 @@ int Request::parsing(std::string request)
 		return 200;
 	if (is_not_method(method))
 		return 400;
-	if ((j = request.find_first_of(" ", i + 1)) == std::string::npos)
+	if ((unsigned long)(j = request.find_first_of(" ", i + 1)) == std::string::npos)
 		return 400;
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
@@ -62,17 +62,17 @@ int Request::parsing(std::string request)
 
 std::string Request::get_path()
 {
-	int i = path.find_first_of("?", 0);
+	unsigned long i = path.find_first_of("?", 0);
 	if (i == std::string::npos)
 		return path;
-	if (i == -1)
+	if ((int)i == -1)
 		i = path.length();
 	return path.substr(0, i);
 }
 
 std::string Request::get_query()
 {
-	int i = path.find_first_of("?", 0);
+	unsigned long i = path.find_first_of("?", 0);
 	if (i == std::string::npos)
 		return "";
 	return path.substr(i + 1, path.size() - i);
@@ -81,7 +81,7 @@ std::string Request::get_query()
 bool Request::is_not_method(const std::string method) {
 	if(method.empty())
 		return true;
-	for(int i = 0; i < method.length(); i++)
+	for(unsigned long i = 0; i < method.length(); i++)
 	{
 		if(!isupper(static_cast<unsigned char>(method[i])))
 			return true;

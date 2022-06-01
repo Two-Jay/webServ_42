@@ -68,13 +68,18 @@ const char *Client::get_client_port()
 std::string Client::get_root_path(std::string path)
 {
 	std::string root;
-	int root_length = 0;
+	unsigned long root_length = 0;
 	int index = -1;
 
-	for (int i = 0; i < server->locations.size(); i++)
+	for (unsigned long i = 0; i < server->locations.size(); i++)
 	{
 		if ((server->locations[i].root != "") && (path.find(server->locations[i].path) != std::string::npos))
 		{
+			if (count_char(path, '/') == count_char(server->locations[i].path, '/'))
+			{
+				if (strcmp(strrchr(path.c_str(), '/'), strrchr(server->locations[i].path.c_str(), '/')))
+					continue;
+			}
 			if (root_length < server->locations[i].root.length())
 			{
 				root_length = server->locations[i].root.length();
@@ -87,3 +92,15 @@ std::string Client::get_root_path(std::string path)
 		root = server->root;
 	return root;
 }
+
+int Client::count_char(std::string str, char c)
+{
+	int cnt = 0;
+
+	for (unsigned long i = 0; i < str.size(); i++)
+	{
+		if (str[i] == c)
+			cnt += 1;
+	}
+	return cnt;
+} 

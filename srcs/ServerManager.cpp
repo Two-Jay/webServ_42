@@ -28,7 +28,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
 	max_fd = -1;
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
 		std::map<int, std::string>::iterator it;
 		for (it = servers[i].error_pages.begin(); it != servers[i].error_pages.end(); it++)
@@ -53,7 +53,7 @@ ServerManager::~ServerManager()
 
 void ServerManager::create_servers()
 {
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
 		servers[i].create_socket();
 	}
@@ -62,9 +62,9 @@ void ServerManager::create_servers()
 void ServerManager::accept_sockets()
 {
 	int server;
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		for (unsigned long j = 0; j < servers[i].listen_socket.size(); j++)
 		{
 			server = servers[i].listen_socket[j];
 			if (FD_ISSET(server, &reads))
@@ -85,9 +85,9 @@ void ServerManager::accept_sockets()
 
 void ServerManager::close_servers()
 {
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		for (unsigned long j = 0; j < servers[i].listen_socket.size(); j++)
 			close(servers[i].listen_socket[j]);
 	}
 }
@@ -97,7 +97,7 @@ void ServerManager::print_servers_info()
 	std::cout << "\n=================================================\n";
 	std::cout << "            Total Server Informations            \n";
 	std::cout << "=================================================\n";
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
 		servers[i].print_server_info();
 	}
@@ -123,12 +123,12 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		if (errno == EINVAL)
 		{
-			for (int i = 0; i < clients.size(); i++)
+			for (unsigned long i = 0; i < clients.size(); i++)
 				send_error_page(429, clients[i], NULL);
 		}
 		else 
 		{
-			for (int i = 0; i < clients.size(); i++)
+			for (unsigned long i = 0; i < clients.size(); i++)
 				send_error_page(500, clients[i], NULL);
 		}
 		exit(1);
@@ -142,20 +142,20 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 
 void ServerManager::wait_to_client()
 {
-	int recv;
+	// int recv;
 	fd_set reads;
 	fd_set writes;
 
 	FD_ZERO(&reads);
 	FD_ZERO(&writes);
-	for (int i = 0; i < servers.size(); i++)
+	for (unsigned long i = 0; i < servers.size(); i++)
 	{
-		for (int j = 0; j < servers[i].listen_socket.size(); j++)
+		for (unsigned long j = 0; j < servers[i].listen_socket.size(); j++)
 		{
 			add_fd_selectPoll(servers[i].listen_socket[j], &reads);
 		}
 	}
-	for (int i = 0; i < clients.size(); i++)
+	for (unsigned long i = 0; i < clients.size(); i++)
 	{
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	}
@@ -199,7 +199,7 @@ bool ServerManager::handle_CGI(Request *request, Location *loc)
 
 void ServerManager::treat_request()
 {
-	for (int i = 0  ; i < clients.size() ; i++)
+	for (unsigned long i = 0  ; i < clients.size() ; i++)
 	{
 		if (FD_ISSET(clients[i].get_socket(), &reads))
 		{
@@ -213,7 +213,8 @@ void ServerManager::treat_request()
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
-			int recv_size = clients[i].get_received_size();
+			// int recv_size = clients[i].get_received_size();
+			char *reqt = clients[i].request;
 			if (r < 1)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
@@ -222,8 +223,7 @@ void ServerManager::treat_request()
 				drop_client(clients[i]);
 				i--;
 			}
-			else if (clients[i].request[recv_size - 4] == '\r' && clients[i].request[recv_size - 3] == '\n'
-				&& clients[i].request[recv_size - 2] == '\r' && clients[i].request[recv_size - 1] == '\n')
+			else if (strstr(reqt, "\r\n\r\n"))
 			{
 				Request req = Request(clients[i].get_socket());
 				int error_code;
@@ -233,7 +233,6 @@ void ServerManager::treat_request()
 					drop_client(clients[i]);
 					continue;
 				}
-				
 				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
@@ -287,6 +286,7 @@ void ServerManager::treat_request()
 
 static void set_signal_kill_child_process(int sig)
 {
+	(void) sig;
     kill(-1,SIGKILL);
 }
 
@@ -387,6 +387,7 @@ bool ServerManager::is_response_timeout(Client& client)
 
 void ServerManager::send_redirection(Client &client, std::string request_method)
 {
+	(void) request_method;
 	std::cout << ">> send redirection response\n";
 	Response response(status_info[client.server->redirect_status]);
 	if (client.server->redirect_status == 300)
@@ -397,7 +398,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	response.append_header("Date", get_current_date_GMT());
 	response.append_header("Content-Type", "text/html");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	response.append_header("Connection", "keep-alive");
+	// response.append_header("Connection", "keep-alive");
 	response.append_header("Location", client.server->redirect_url);
 
 	std::string result = response.serialize();
@@ -437,7 +438,7 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 	if (code == 405)
 	{
 		std::string allowed_method_list;
-		for (int i = 0; i < (*allow_methods).size(); i++)
+		for (unsigned long i = 0; i < (*allow_methods).size(); i++)
 		{
 			allowed_method_list += methodtype_to_s((*allow_methods)[i]);
 			if (i < (*allow_methods).size() - 1)
@@ -497,7 +498,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
-	char *dir_list;
+	// char *dir_list;
 	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
 	lstat(full_path.c_str(), &buf);
@@ -527,7 +528,7 @@ void ServerManager::get_method(Client &client, std::string path)
 					indexes = client.server->index;
 				if (full_path.back() != '/')
 					full_path.append("/");
-				for (int i = 0; i < indexes.size(); i++)
+				for (unsigned long i = 0; i < indexes.size(); i++)
 				{
 					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
 					if (fp)
@@ -694,7 +695,7 @@ void ServerManager::get_autoindex_page(Client &client, std::string path)
 	while ((file = readdir(dir)) != NULL)
 	{
 		std::cout << "file name: " << file->d_name << "\n";
-		if (file->d_name == "." || file->d_name == "..")
+		if (strcmp(file->d_name, ".") || strcmp(file->d_name, ".."))
 			result += "<a href=\"" + path + "/" + file->d_name;
 		else if (path[path.length() - 1] == '/')
 			result += "<a href=\"" + path + file->d_name;

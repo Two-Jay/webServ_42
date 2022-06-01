@@ -28,7 +28,7 @@ void Server::create_socket()
 	hints.ai_flags = AI_PASSIVE;
 
 	struct addrinfo *bind_addr;
-	for (int i = 0; i < port.size(); i++)
+	for (unsigned long i = 0; i < port.size(); i++)
 	{
 		// memset(bind_addr, 0, sizeof(struct addrinfo*));
 		getaddrinfo(host.c_str(), port[i].c_str(), &hints, &bind_addr);
@@ -74,7 +74,7 @@ void Server::print_server_info()
 		std::cout << "> autoindex: " << (autoindex ? "on\n" : "off\n");
 		std::cout << "> index: " << index << "\n";
 		std::cout << "> allow_methods: " << allow_methods << "\n";
-		for (int i = 0; i < locations.size(); i++)
+		for (unsigned long i = 0; i < locations.size(); i++)
 		{
 			locations[i].print_location_info();
 		}

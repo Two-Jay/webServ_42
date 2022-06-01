@@ -21,7 +21,7 @@ std::string get_current_date_GMT(void);
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)
 {
-	for (int i = 0; i < op.size(); i++)
+	for (unsigned long i = 0; i < op.size(); i++)
 	{
 		out << op[i] << "(" << i << ") ";
 	}
