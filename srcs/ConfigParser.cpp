@@ -88,7 +88,7 @@ Server ConfigParser::parse_server(size_t *i)
 					exit(print_parse_error());
 			if ((value_end = check_line_syntax(content.substr(key_start, cur - key_start))) == FAILED)
 				exit(print_parse_error());
-			if (value_end == EMPTY)
+			if ((int)value_end == EMPTY)
 				continue;
 			std::string value = content.substr(pre, value_end - pre + key_start + 1);
 			if (set_server_values(&result, key, value) == FAILED)
@@ -135,7 +135,7 @@ Location ConfigParser::parse_location(size_t *i)
 					exit(print_parse_error());
 			if ((value_end = check_line_syntax(content.substr(key_start, cur - key_start))) == FAILED)
 				exit(print_parse_error());
-			if (value_end == EMPTY)
+			if ((int)value_end == EMPTY)
 				continue;
 			std::string value = content.substr(pre, value_end - pre + key_start + 1);
 			if (set_location_values(&result, key, value) == FAILED)
@@ -157,7 +157,7 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 		if (server->host != "" && server->host != tmp[0])
 			return FAILED;
 		server->host = tmp[0];
-		server->port.push_back(tmp[1]);
+		server->port = tmp[1];
 	}
 	else if (key == "root")
 	{
@@ -166,13 +166,13 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 	else if (key == "index")
 	{
 		std::vector<std::string> tmp = split(value, ' ');
-		for (int i = 0; i != tmp.size(); i++)
+		for (unsigned long i = 0; i != tmp.size(); i++)
 			server->index.push_back(tmp[i]);
 	}
 	else if (key == "allow_methods")
 	{
 		std::vector<std::string> tmp = split(value, ' ');
-		for (int i = 0; i != tmp.size(); i++)
+		for (unsigned long i = 0; i != tmp.size(); i++)
 			server->allow_methods.push_back(Server::s_to_methodtype(tmp[i]));
 	}
 	else if (key == "autoindex")
@@ -199,12 +199,12 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 	{
 		std::vector<std::string> tmp = split(value, ' ');
 		std::string path = tmp[tmp.size() - 1];
-		for (int i = 0; i != tmp.size() - 1; i++)
+		for (unsigned long i = 0; i != tmp.size() - 1; i++)
 		{
 			int status_code = atoi(tmp[i].c_str());
 			if (server->error_pages.find(status_code) != server->error_pages.end())
 				continue;
-			server->error_pages.insert(std::make_pair(status_code, path));
+			server->error_pages[status_code] = path;
 		}
 	}
 	else
@@ -223,18 +223,18 @@ int ConfigParser::set_location_values(Location *location, const std::string key,
 	else if (key == "index")
 	{
 		std::vector<std::string> tmp = split(value, ' ');
-		for (int i = 0; i != tmp.size(); i++)
+		for (unsigned long i = 0; i != tmp.size(); i++)
 			location->index.push_back(tmp[i]);
 	}
 	else if (key == "allow_methods")
 	{
 		std::vector<std::string> tmp = split(value, ' ');
-		for (int i = 0; i != tmp.size(); i++)
+		for (unsigned long i = 0; i != tmp.size(); i++)
 			location->allow_methods.push_back(Location::s_to_methodtype(tmp[i]));
 	}
 	else if (key == "cgi_info")
 	{
-		int i = value.find_first_of(" ");
+		unsigned long i = value.find_first_of(" ");
 		if (i == std::string::npos)
 			return FAILED;
 		int j = value.find_first_not_of(" ", i);

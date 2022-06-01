@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include <fstream>
+#include <string.h>
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -17,7 +18,9 @@
 class ServerManager
 {
 private:
-	std::vector<Server> servers;
+	std::vector<Server> _servers;
+	std::map<std::string, Server*> servers;
+	std::map<std::string, Server*> default_servers;
 	std::vector<Client> clients;
 	int max_fd;
 	fd_set reads;
@@ -46,8 +49,7 @@ private:
 	void add_fd_selectPoll(int fd, fd_set* fds);
 	void run_selectPoll(fd_set *reads, fd_set *writes);
 	void send_cgi_response(Client& client, CgiHandler& ch);
-	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods);
-	void send_405_error_page(int code, Client &Client, std::vector<MethodType> allow_methods);
+	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods = NULL);
 	void send_redirection(Client &client, std::string request_method);
 	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
 	std::string methodtype_to_s(MethodType method);
@@ -58,7 +60,7 @@ private:
 	void post_method(Client &client, Request &request);
 	void delete_method(Client &client, std::string path);
 
-	void get_autoindex_page(Client &client, std::string path);
+	void send_autoindex_page(Client &client, std::string path);
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);

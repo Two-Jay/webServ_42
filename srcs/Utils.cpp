@@ -2,7 +2,7 @@
 
 int replace(std::string &original, std::string word1, std::string word2)
 {
-	int pos = original.find(word1);
+	unsigned long pos = original.find(word1);
 	int result = 0;
 	while (pos != std::string::npos)
 	{

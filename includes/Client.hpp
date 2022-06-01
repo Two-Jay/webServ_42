@@ -19,7 +19,7 @@ public:
 	char request[MAX_REQUEST_SIZE + 1];
 	Server *server;
 
-	Client(Server *server);
+	Client();
 	~Client();
 	
 	int get_socket() const;
@@ -30,6 +30,7 @@ public:
 	void set_last_time_sec(timeval& tv);
 
 	std::string get_root_path(std::string path);
+	int count_char(std::string str, char c);
 	
 	const char *get_client_address();
 	const char *get_client_port();

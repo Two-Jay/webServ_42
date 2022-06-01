@@ -37,3 +37,5 @@
 # VSCode settings
 .vscode/*
 webserv
+
+main.cc
