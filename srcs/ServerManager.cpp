@@ -196,6 +196,12 @@ bool static is_request_done(char *request)
 		body += 4;
 		if (strstr(body, "\r\n\r\n"))
 			return true;
+		char *start = strnstr(request, "Content-Length: ", strlen(request) - strlen(body)) + 16;
+		char *end = strstr(start, "\r\n");
+		char *len = strndup(start, end - start);
+		int len_i = atoi(len);
+		if ((size_t)len_i <= strlen(body))
+			return true;
 		return false;
 	}
 	else if (strnstr(request, "boundary=", strlen(request) - strlen(body)))
@@ -225,7 +231,8 @@ void ServerManager::treat_request()
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
-			if (clients[i].get_received_size() > MAX_REQUEST_SIZE) {
+			if (clients[i].get_received_size() > MAX_REQUEST_SIZE)
+			{
 				send_error_page(413, clients[i]);
 				drop_client(clients[i]);
 				i--;
