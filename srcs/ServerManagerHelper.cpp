@@ -23,6 +23,7 @@ bool	ServerManager::is_allowed_method(std::vector<MethodType> allow_methods, std
 	}
 	return false;
 }
+
 bool	ServerManager::is_loc_check(std::string path, Client &client)
 {
 	Location *cur_loc = client.server->get_cur_location(path);
@@ -34,13 +35,27 @@ bool	ServerManager::is_loc_check(std::string path, Client &client)
 	return false;
 }
 
-bool	ServerManager::is_response_timeout(Client& client)
+bool ServerManager::is_response_timeout(Client& client)
 {
 	static timeval tv;
 	
 	gettimeofday(&tv, NULL);
 	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
 	client.set_last_time_sec(tv);
+	return false;
+}
+
+bool	ServerManager::is_cgi(Request *request, Location *loc)
+{
+	std::cout << "handle_cgi\n";
+	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
+	it != loc->cgi_info.end(); it++)
+	{
+		std::cout << "get_path: " << request->get_path() << "\n";
+		std::cout << "it->first: " << it->first << "\n"; 
+		if (request->get_path().find(it->first) != std::string::npos)
+			return true;
+	}
 	return false;
 }
 
@@ -88,7 +103,7 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 	return full_path;
 }
 
-std::string	ServerManager::get_status_cgi(std::string& cgi_ret)
+std::string ServerManager::get_status_cgi(std::string& cgi_ret)
 {
 	std::string status_line;
 	std::stringstream ss(cgi_ret);

@@ -253,7 +253,7 @@ void ServerManager::treat_request()
 					continue;
 				}
 				
-				if (loc && handle_cgi(&req, loc))
+				if (loc && is_cgi(&req, loc))
 				{
 					std::cout << "cgi\n";
 					CgiHandler cgi(req, *loc);
@@ -551,20 +551,6 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 ** CGI Methods
 */
 
-bool ServerManager::handle_cgi(Request *request, Location *loc)
-{
-	std::cout << "handle_cgi\n";
-	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
-	it != loc->cgi_info.end(); it++)
-	{
-		std::cout << "get_path: " << request->get_path() << "\n";
-		std::cout << "it->first: " << it->first << "\n"; 
-		if (request->get_path().find(it->first) != std::string::npos)
-			return true;
-	}
-	return false;
-}
-
 static void set_signal_kill_child_process(int sig)
 {
 	(void) sig;
@@ -576,6 +562,7 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 	std::stringstream ss(cgi_ret);
 	size_t tmpi;
 	std::string tmp;
+	std::string body;
 
 	res.append_header("Server", client.server->server_name);
 	res.append_header("Connection", "close");
@@ -594,9 +581,11 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 		std::string value = tmp.substr(mid_deli + 1, end_deli);
 		res.append_header(key, value);
 	}
-	getline(ss, tmp, '\n');
-	tmp.append("\n");
-	res.set_body(tmp);
+	while (getline(ss, tmp, '\n')) {
+		body += tmp;
+		body += "\n";
+	}
+	res.set_body(body);
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
 

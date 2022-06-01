@@ -56,7 +56,7 @@ private:
 	void send_redirection(Client &client, std::string request_method);
 	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods = NULL);
 
-	bool handle_cgi(Request *request, Location *loc);
+	bool is_cgi(Request *request, Location *loc);
 	void create_cgi_msg(Response& res, std::string& cgi_ret, Client &client);
 	void send_cgi_response(Client& client, CgiHandler& ch);
 	
