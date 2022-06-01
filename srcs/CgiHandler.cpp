@@ -104,15 +104,15 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-int CgiHandler::excute_CGI(Request &Request, Location &loc)
+int CgiHandler::excute_CGI(Request &req, Location &loc)
 {
 	int read_fd[2];
 	int write_fd[2];
 	int pid;
 	int ret1 = pipe(read_fd);
 
-	if (ret1 < 0 || pipe(write_fd) < 0 || !resource_p) return -1;
-	signal(SIGALRM,(void (*)(int))set_signal_kill_child_process);
+	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && !resource_p)) return -1;
+	signal(SIGALRM, set_signal_kill_child_process);
 	pid = fork();
 	if (pid < 0) return -1;
 	else if (pid == 0)
@@ -122,7 +122,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		close(write_fd[1]);
 		close(read_fd[0]);
 		char **env = set_env();
-		std::string extension = Request.get_path().substr(Request.get_path().find(".") + 1);
+		std::string extension = req.get_path().substr(req.get_path().find(".") + 1);
 		char *av[3];
 		av[0] = const_cast<char*>(loc.getCgiBinary(extension).c_str());
 		av[1] = const_cast<char*>(loc.root.c_str());
