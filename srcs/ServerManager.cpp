@@ -700,8 +700,6 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, std::string
 		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
 		create_cgi_msg(res, cgi_ret, client);
 		std::string result = res.serialize();
-		send(client.get_socket(), result.c_str(), result.size(), 0);
-		std::cout << ">> cgi responsed\n";
 		int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
 		if (send_ret < 0)
 			return 500;
