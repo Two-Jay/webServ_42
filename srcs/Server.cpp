@@ -43,7 +43,8 @@ void Server::create_socket()
 			exit(1);
 		}
 		int opt = 1;
-		setsockopt(socket_listen, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt));
+		if (setsockopt(socket_listen, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt)) < 0)
+			fprintf(stderr, "setsockopt: setsocketopt on server socket failed\n");
 		std::cout << "> Binding socket to local address...\n";
 		if (bind(socket_listen, bind_addr->ai_addr, bind_addr->ai_addrlen))
 		{
