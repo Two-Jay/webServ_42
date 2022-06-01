@@ -29,8 +29,7 @@ public:
 	std::string host;
 	std::string port;
 	
-	std::vector<int> listen_socket;
-	std::vector<int> fd;//??
+	int listen_socket;
 	
 	Server();
 	~Server();

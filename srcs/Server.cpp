@@ -28,35 +28,39 @@ void Server::create_socket()
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &info) != 0)
+	std::cout << host << "/" << port << "\n";
+	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &info) >= 0)
 	{
-		fprintf(stderr, "getaddrinfo() faild. (%d)\n", errno);
+		std::cout << "> Creating socket...\n";
+		int new_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+		fcntl(new_socket, F_SETFL, O_NONBLOCK);
+		if (new_socket < 0)
+		{
+			fprintf(stderr, "socket() failed. (%d)\n", errno);
+			exit(1);
+		}
+		std::cout << "> Binding socket to local address...\n";
+		if (bind(new_socket, info->ai_addr, info->ai_addrlen))
+		{
+			fprintf(stderr, "bind() failed. (%d)\n", errno);
+			perror("bind");
+			exit(1);
+		}
+		freeaddrinfo(info);
+		std::cout << "> Listening...\n";
+		if (listen(new_socket, 10) < 0)
+		{
+			fprintf(stderr, "listen() failed. (%d)\n", errno);
+			exit(1);
+		}
+		this->listen_socket = new_socket;
+		std::cout << "> Socket successfully added!\n";
+	}
+	else
+	{
+		fprintf(stderr, "getaddrinfo() failed. (%d)\n", errno);
 		exit(1);
 	}
-	std::cout << "> Creating socket...\n";
-	int socket_listen = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
-	fcntl(socket_listen, F_SETFL, O_NONBLOCK);
-	if (socket_listen < 0)
-	{
-		fprintf(stderr, "socket() failed. (%d)\n", errno);
-		exit(1);
-	}
-	std::cout << "> Binding socket to local address...\n";
-	if (bind(socket_listen, info->ai_addr, info->ai_addrlen))
-	{
-		fprintf(stderr, "bind() failed. (%d)\n", errno);
-		perror("bind");
-		exit(1);
-	}
-	freeaddrinfo(info);
-	std::cout << "> Listening...\n";
-	if (listen(socket_listen, 10) < 0)
-	{
-		fprintf(stderr, "listen() failed. (%d)\n", errno);
-		exit(1);
-	}
-	this->listen_socket.push_back(socket_listen);
-	std::cout << "> Socket successfully added!\n";
 }
 
 void Server::print_server_info()

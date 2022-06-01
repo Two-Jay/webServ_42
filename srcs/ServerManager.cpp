@@ -44,7 +44,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 			servers_id[servers[i].server_name + servers[i].port] = &servers[i];
 		else
 		{
-			std::cout << "! already exist server block !\n";
+			std::cout << "! ignore already exist server block !\n";
 		}
 	}
 }
@@ -78,21 +78,18 @@ void ServerManager::accept_sockets()
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
 	{
-		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
+		server = (*it).second->listen_socket;
+		if (FD_ISSET(server, &reads))
 		{
-			server = (*it).second->listen_socket[j];
-			if (FD_ISSET(server, &reads))
+			clients.push_back(Client((*it).second));
+			Client &client = clients.back();
+			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
+			if (client.get_socket() < 0)
 			{
-				clients.push_back(Client((*it).second));
-				Client &client = clients.back();
-				client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
-				if (client.get_socket() < 0)
-				{
-					fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
-					exit(1);
-				}
-				std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
+				fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
+				exit(1);
 			}
+			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
 		}
 	}
 }
@@ -101,10 +98,7 @@ void ServerManager::close_servers()
 {
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
-	{
-		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
-			close((*it).second->listen_socket[j]);
-	}
+		close((*it).second->listen_socket);
 }
 
 void ServerManager::print_servers_info()
@@ -125,7 +119,8 @@ void ServerManager::print_servers_info()
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
 {
 	FD_SET(fd, fds);
-	if (this->max_fd < fd) this->max_fd = fd;
+	if (this->max_fd < fd)
+		this->max_fd = fd;
 }
 
 void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
@@ -164,16 +159,9 @@ void ServerManager::wait_to_client()
 	FD_ZERO(&writes);
 	std::map<std::string, Server*>::iterator it;
 	for (it = servers_id.begin(); it != servers_id.end(); it++)
-	{
-		for (int j = 0; j < (*it).second->listen_socket.size(); j++)
-		{
-			add_fd_selectPoll((*it).second->listen_socket[j], &reads);
-		}
-	}
+		add_fd_selectPoll((*it).second->listen_socket, &reads);
 	for (int i = 0; i < clients.size(); i++)
-	{
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
-	}
 	run_selectPoll(&reads, &writes);
 }
 
@@ -201,9 +189,12 @@ void ServerManager::drop_client(Client client)
 
 bool ServerManager::handle_CGI(Request *request, Location *loc)
 {
+	std::cout << "handle_cgi\n";
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
+		std::cout << "get_path: " << request->get_path() << "\n";
+		std::cout << "it->first: " << it->first << "\n"; 
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}
@@ -227,6 +218,7 @@ void ServerManager::treat_request()
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
 			int recv_size = clients[i].get_received_size();
+			char *reqt = clients[i].request;
 			if (r < 1)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
@@ -235,8 +227,7 @@ void ServerManager::treat_request()
 				drop_client(clients[i]);
 				i--;
 			}
-			else if (clients[i].request[recv_size - 4] == '\r' && clients[i].request[recv_size - 3] == '\n'
-				&& clients[i].request[recv_size - 2] == '\r' && clients[i].request[recv_size - 1] == '\n')
+			else if (strstr(reqt, "\r\n\r\n"))
 			{
 				Request req = Request(clients[i].get_socket());
 				int error_code;
@@ -269,6 +260,7 @@ void ServerManager::treat_request()
 				
 				if (loc && handle_CGI(&req, loc))
 				{
+					std::cout << "cgi\n";
 					CgiHandler cgi(req, *loc);
 					int read_fd = cgi.excute_CGI(req, *loc);
 					if (read_fd == -1)
