@@ -306,7 +306,7 @@ void ServerManager::treat_request()
 						send_error_page(404, clients[i]);
 					else if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i]);
-					else if ((cgi_ret = send_cgi_response(clients[i], cgi)))
+					else if ((cgi_ret = send_cgi_response(clients[i], cgi, req.method)))
 						send_error_page(cgi_ret, clients[i]);
 				}
 				else
@@ -662,8 +662,9 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
 
-int ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
+int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, std::string& req_mothod)
 {
+	(void)req_mothod;
 	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
