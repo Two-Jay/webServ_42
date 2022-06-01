@@ -1,6 +1,6 @@
 #include "../includes/Server.hpp"
 
-Server::Server(/* args */)
+Server::Server()
 {
 	client_body_limit = 1024;
 
@@ -12,6 +12,7 @@ Server::Server(/* args */)
 	
 	autoindex = false;
 	host = "";
+	port = "";
 	redirect_status = -1;
 }
 
@@ -21,23 +22,19 @@ Server::~Server()
 
 void Server::create_socket()
 {
-	struct addrinfo hints;
+	struct addrinfo hints, *info;
+
+	std::cout << "> Get address informations...\n";
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-
-	struct addrinfo *bind_addr;
-	for (unsigned long i = 0; i < port.size(); i++)
+	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &info) >= 0)
 	{
-		// memset(bind_addr, 0, sizeof(struct addrinfo*));
-		getaddrinfo(host.c_str(), port[i].c_str(), &hints, &bind_addr);
-
 		std::cout << "> Creating socket...\n";
-		int socket_listen = socket(bind_addr->ai_family,
-				bind_addr->ai_socktype, bind_addr->ai_protocol);
-		fcntl(socket_listen, F_SETFL, O_NONBLOCK);
-		if (socket_listen < 0)
+		int new_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+		fcntl(new_socket, F_SETFL, O_NONBLOCK);
+		if (new_socket < 0)
 		{
 			fprintf(stderr, "socket() failed. (%d)\n", errno);
 			exit(1);
@@ -52,15 +49,20 @@ void Server::create_socket()
 			perror("bind");
 			exit(1);
 		}
-		freeaddrinfo(bind_addr);
+		freeaddrinfo(info);
 		std::cout << "> Listening...\n";
-		if (listen(socket_listen, 10) < 0)
+		if (listen(new_socket, 10) < 0)
 		{
 			fprintf(stderr, "listen() failed. (%d)\n", errno);
 			exit(1);
 		}
-		this->listen_socket.push_back(socket_listen);
+		this->listen_socket = new_socket;
 		std::cout << "> Socket successfully added!\n";
+	}
+	else
+	{
+		fprintf(stderr, "getaddrinfo() failed. (%d)\n", errno);
+		exit(1);
 	}
 }
 
@@ -77,10 +79,13 @@ void Server::print_server_info()
 		std::cout << "> autoindex: " << (autoindex ? "on\n" : "off\n");
 		std::cout << "> index: " << index << "\n";
 		std::cout << "> allow_methods: " << allow_methods << "\n";
+		std::cout << "> error pages: ";
+		if (error_pages.size() > 0)
+			std::cout << "\n" << error_pages;
+		else
+			std::cout << "(empty)\n";
 		for (unsigned long i = 0; i < locations.size(); i++)
-		{
 			locations[i].print_location_info();
-		}
 	}
 	else
 	{
