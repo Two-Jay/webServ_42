@@ -21,17 +21,13 @@ std::string get_current_date_GMT(void);
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)
 {
-<<<<<<< HEAD
 	if (op.size() == 0)
 	{
 		out << "(empty)";
 		return out;
 	}
 
-	for (int i = 0; i < op.size(); i++)
-=======
 	for (unsigned long i = 0; i < op.size(); i++)
->>>>>>> c37fa94020aa01e1090299dd952507601939596c
 	{
 		out << op[i] << "(" << i << ") ";
 	}
@@ -46,7 +42,7 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2> &op)
 		out << "(empty)";
 		return out;
 	}
-	
+
 	for (typename std::map<T1, T2>::const_iterator i = op.begin(); i != op.end(); i++)
 	{
 		out << "[ " << (*i).first << " ] = " << (*i).second << "\n";
