@@ -2,7 +2,7 @@
 
 ServerManager::ServerManager(std::vector<Server> servers)
 {
-	this->servers = servers;
+	_servers = servers;
 
 	status_info.insert(std::make_pair(200, "200 OK"));
 	status_info.insert(std::make_pair(201, "201 Created"));
@@ -28,10 +28,10 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
 	max_fd = -1;
-	for (int i = 0; i < servers.size(); i++)
+	for (int i = 0; i < _servers.size(); i++)
 	{
 		std::map<int, std::string>::iterator it;
-		for (it = servers[i].error_pages.begin(); it != servers[i].error_pages.end(); it++)
+		for (it = _servers[i].error_pages.begin(); it != _servers[i].error_pages.end(); it++)
 		{
 			int status_code = it->first;
 			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
@@ -40,12 +40,15 @@ ServerManager::ServerManager(std::vector<Server> servers)
 				exit(1);
 			}
 		}
-		if (!servers_id[servers[i].server_name + servers[i].port])
-			servers_id[servers[i].server_name + servers[i].port] = &servers[i];
+		// to find default server
+		if (!default_servers[_servers[i].port])
+			default_servers[_servers[i].port] = &_servers[i];
+
+		// to identity server name(host)
+		if (!this->servers[_servers[i].server_name + ":" + _servers[i].port])
+			this->servers[_servers[i].server_name + ":" + _servers[i].port] = &_servers[i];
 		else
-		{
 			std::cout << "! ignore already exist server block !\n";
-		}
 	}
 }
 
@@ -59,16 +62,11 @@ ServerManager::~ServerManager()
 
 void ServerManager::create_servers()
 {
-	std::map<std::string, int> ports;
 	std::map<std::string, Server*>::iterator it;
-	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
 	{
-		if (ports[(*it).second->port] == 0)
-		{
-			std::cout << "> Server : " << (*it).first << "\n";
-			(*it).second->create_socket();
-			ports[(*it).second->port]++;
-		}
+		std::cout << "> Create server : " << (*it).first << "\n";
+		(*it).second->create_socket();
 	}
 }
 
@@ -76,12 +74,12 @@ void ServerManager::accept_sockets()
 {
 	int server;
 	std::map<std::string, Server*>::iterator it;
-	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
 	{
 		server = (*it).second->listen_socket;
 		if (FD_ISSET(server, &reads))
 		{
-			clients.push_back(Client((*it).second));
+			clients.push_back(Client());
 			Client &client = clients.back();
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
@@ -97,7 +95,7 @@ void ServerManager::accept_sockets()
 void ServerManager::close_servers()
 {
 	std::map<std::string, Server*>::iterator it;
-	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
 		close((*it).second->listen_socket);
 }
 
@@ -107,7 +105,7 @@ void ServerManager::print_servers_info()
 	std::cout << "            Total Server Informations            \n";
 	std::cout << "=================================================\n";
 	std::map<std::string, Server*>::iterator it;
-	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
 		(*it).second->print_server_info();
 	std::cout << "=================================================\n";
 }
@@ -133,21 +131,20 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 		if (errno == EINVAL)
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i], NULL);
+				send_error_page(429, clients[i]);
 		}
 		else 
 		{
 			for (int i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i], NULL);
+				send_error_page(500, clients[i]);
 		}
 		exit(1);
-	} else if (ret == 0) {
-		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	}
+	else if (ret == 0)
+		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
 	this->reads = *reads;
 	this->writes = *writes;
 }
-
 
 void ServerManager::wait_to_client()
 {
@@ -158,7 +155,7 @@ void ServerManager::wait_to_client()
 	FD_ZERO(&reads);
 	FD_ZERO(&writes);
 	std::map<std::string, Server*>::iterator it;
-	for (it = servers_id.begin(); it != servers_id.end(); it++)
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
 		add_fd_selectPoll((*it).second->listen_socket, &reads);
 	for (int i = 0; i < clients.size(); i++)
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
@@ -169,7 +166,7 @@ void ServerManager::drop_client(Client client)
 {
 	close(client.get_socket());
 
-	std::cout << "drop client!\n";
+	std::cout << "> drop client\n";
 	std::vector<Client>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -203,13 +200,13 @@ bool ServerManager::handle_CGI(Request *request, Location *loc)
 
 void ServerManager::treat_request()
 {
-	for (int i = 0  ; i < clients.size() ; i++)
+	for (int i = 0; i < clients.size(); i++)
 	{
 		if (FD_ISSET(clients[i].get_socket(), &reads))
 		{
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
-				send_error_page(400, clients[i], NULL);
+				send_error_page(400, clients[i]);
 				drop_client(clients[i]);
 				continue;
 			}
@@ -223,7 +220,7 @@ void ServerManager::treat_request()
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
 				fprintf(stderr, "[ERROR] recv() failed.\n");
-				send_error_page(500, clients[i], NULL);
+				send_error_page(500, clients[i]);
 				drop_client(clients[i]);
 				i--;
 			}
@@ -233,7 +230,27 @@ void ServerManager::treat_request()
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
 				{
-					send_error_page(error_code, clients[i], NULL);
+					send_error_page(error_code, clients[i]);
+					drop_client(clients[i]);
+					continue;
+				}
+
+				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1);
+				std::cout << "> port " << port;
+				if (servers[req.headers["Host"]])
+				{
+					std::cout << ": found in server name\n";
+					clients[i].server = servers[req.headers["Host"]];
+				}
+				else if (default_servers[port])
+				{
+					std::cout << ": default server\n";
+					clients[i].server = default_servers[port];
+				}
+				else
+				{
+					std::cout << ": not found\n";
+					send_error_page(400, clients[i]);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -241,7 +258,7 @@ void ServerManager::treat_request()
 				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
-					send_error_page(413, clients[i], NULL);
+					send_error_page(413, clients[i]);
 					drop_client(clients[i]);
 					continue;
 				}
@@ -264,16 +281,16 @@ void ServerManager::treat_request()
 					CgiHandler cgi(req, *loc);
 					int read_fd = cgi.excute_CGI(req, *loc);
 					if (read_fd == -1)
-						send_error_page(404, clients[i], NULL);
+						send_error_page(404, clients[i]);
 					if (is_response_timeout(clients[i]) == true)
-						send_error_page(408, clients[i], NULL);
+						send_error_page(408, clients[i]);
 					else
 						send_cgi_response(clients[i], cgi);
 				}
 				else
 				{
 					if (is_response_timeout(clients[i]) == true)
-						send_error_page(408, clients[i], NULL);
+						send_error_page(408, clients[i]);
 					if (clients[i].server->redirect_status != -1)
 						send_redirection(clients[i], req.method);
 					else if (req.method == "GET")
@@ -284,6 +301,8 @@ void ServerManager::treat_request()
 						delete_method(clients[i], req.path);
 				}
 				drop_client(clients[i]);
+				i--;
+				std::cout << "> request completed\n";
 			}
 		}
 	}
@@ -306,7 +325,7 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
 		close(ch.get_pipe_write_fd());
-		send_error_page(500, client, NULL);
+		send_error_page(500, client);
 		drop_client(client);
 		return ;
 	}
@@ -319,7 +338,7 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
 		close(ch.get_pipe_read_fd());
 		close(ch.get_pipe_write_fd());
-		send_error_page(500, client, NULL);
+		send_error_page(500, client);
 		drop_client(client);
 		return ;
 	}
@@ -327,7 +346,7 @@ void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
 	close(ch.get_pipe_read_fd());
 	close(ch.get_pipe_write_fd());
 	std::cout << "successfully read\n";
-	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client, NULL);
+	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client);
 	else
 	{
 		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
@@ -419,6 +438,7 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 		if (!page.is_open())
 			code = 404;
 	}
+
 	Response response(status_info[code]);
 	if (page.is_open())
 	{
@@ -435,6 +455,7 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 	}
 	else
 		response.make_status_body();
+	
 	response.append_header("Connection", "close");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
@@ -497,7 +518,7 @@ void ServerManager::get_method(Client &client, std::string path)
 	std::cout << "GET method\n";
 	if (path.length() >= MAX_URI_SIZE)
 	{
-		send_error_page(414, client, NULL);
+		send_error_page(414, client);
 		return;
 	}
 
@@ -508,16 +529,15 @@ void ServerManager::get_method(Client &client, std::string path)
 	FILE *fp = fopen(full_path.c_str(), "rb");
 	std::cout << "> " + full_path + ", " + (fp == NULL ? "not found\n" : "found\n");
 	if (!fp)
-		send_error_page(404, client, NULL);
+		send_error_page(404, client);
 	else
 	{
 		if (S_ISDIR(buf.st_mode))
 		{
-			std::cout << "directory\n";
+			std::cout << "> path is directory\n";
 			if (client.server->autoindex)
 			{
-				std::cout << "autoindex true\n";
-				get_autoindex_page(client, path);
+				send_autoindex_page(client, path);
 				fclose(fp);
 				return;
 			}
@@ -545,7 +565,7 @@ void ServerManager::get_method(Client &client, std::string path)
 				}
 				if (!flag)
 				{
-					send_error_page(404, client, NULL);
+					send_error_page(404, client);
 					fclose(fp);
 					return;
 				}
@@ -583,7 +603,7 @@ void ServerManager::post_method(Client &client, Request &request)
 
 	if (request.headers.find("Content-Length") == request.headers.end())
 	{
-		send_error_page(411, client, NULL);
+		send_error_page(411, client);
 		return;
 	}
 
@@ -591,7 +611,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	size_t index = full_path.find_last_of("/");
 	if (index == std::string::npos)
 	{
-		send_error_page(500, client, NULL);
+		send_error_page(500, client);
 		return;
 	}
 	std::string file_name = full_path.substr(index + 1);
@@ -602,7 +622,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	FILE *fp = fopen(full_path.c_str(), "w");
 	if (!fp)
 	{
-		send_error_page(500, client, NULL);
+		send_error_page(500, client);
 		return;
 	}
 
@@ -625,7 +645,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 	FILE *fp = fopen(full_path.c_str(), "r");
 	if (!fp)
 	{
-		send_error_page(204, client, NULL);
+		send_error_page(204, client);
 		return;
 	}
 	fclose(fp);
@@ -677,10 +697,9 @@ std::string ServerManager::find_path_in_root(std::string path, Client &client)
 	return full_path;
 }
 
-void ServerManager::get_autoindex_page(Client &client, std::string path)
+void ServerManager::send_autoindex_page(Client &client, std::string path)
 {
-	std::cout << "path: " << path << "\n";
-	std::cout << "root path: " << client.get_root_path(path) << "\n";
+	std::cout << "> send autoindex page\n";
 	std::string addr = client.get_root_path(path) + "/";
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
@@ -694,7 +713,6 @@ void ServerManager::get_autoindex_page(Client &client, std::string path)
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
 	{
-		std::cout << "file name: " << file->d_name << "\n";
 		if (file->d_name == "." || file->d_name == "..")
 			result += "<a href=\"" + path + "/" + file->d_name;
 		else if (path[path.length() - 1] == '/')

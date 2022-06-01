@@ -1,6 +1,6 @@
 #include "../includes/Server.hpp"
 
-Server::Server(/* args */)
+Server::Server()
 {
 	client_body_limit = 1024;
 
@@ -12,6 +12,7 @@ Server::Server(/* args */)
 	
 	autoindex = false;
 	host = "";
+	port = "";
 	redirect_status = -1;
 }
 
@@ -28,7 +29,6 @@ void Server::create_socket()
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-	std::cout << host << "/" << port << "\n";
 	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &info) >= 0)
 	{
 		std::cout << "> Creating socket...\n";
@@ -76,10 +76,13 @@ void Server::print_server_info()
 		std::cout << "> autoindex: " << (autoindex ? "on\n" : "off\n");
 		std::cout << "> index: " << index << "\n";
 		std::cout << "> allow_methods: " << allow_methods << "\n";
+		std::cout << "> error pages: ";
+		if (error_pages.size() > 0)
+		 std::cout << "\n" << error_pages;
+		else
+		 std::cout << "(empty)\n";
 		for (int i = 0; i < locations.size(); i++)
-		{
 			locations[i].print_location_info();
-		}
 	}
 	else
 	{

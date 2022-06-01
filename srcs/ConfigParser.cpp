@@ -204,7 +204,7 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 			int status_code = atoi(tmp[i].c_str());
 			if (server->error_pages.find(status_code) != server->error_pages.end())
 				continue;
-			server->error_pages.insert(std::make_pair(status_code, path));
+			server->error_pages[status_code] = path;
 		}
 	}
 	else
