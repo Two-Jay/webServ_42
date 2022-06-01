@@ -65,7 +65,7 @@ void ServerManager::create_servers()
 	std::map<std::string, Server*>::iterator it;
 	for (it = default_servers.begin(); it != default_servers.end(); it++)
 	{
-		std::cout << "> Create server : " << (*it).first << "\n";
+		std::cout << "> Create Server : " << (*it).first << "\n";
 		(*it).second->create_socket();
 	}
 }
@@ -142,7 +142,7 @@ void ServerManager::accept_sockets()
 		server = (*it).second->listen_socket;
 		if (FD_ISSET(server, &reads))
 		{
-			clients.push_back(Client());
+			clients.push_back(Client((*it).second));
 			Client &client = clients.back();
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
@@ -159,7 +159,7 @@ void ServerManager::drop_client(Client client)
 {
 	close(client.get_socket());
 
-	std::cout << "> drop client\n";
+	std::cout << "> Drop Client\n";
 	std::vector<Client>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -214,20 +214,21 @@ void ServerManager::treat_request()
 					continue;
 				}
 
-				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1); 
+				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1);
+				std::cout << "> " << req.headers["Host"];
 				if (servers[req.headers["Host"]])
 				{
-					std::cout << ": found in server name\n";
+					std::cout << " -> found in server name\n";
 					clients[i].server = servers[req.headers["Host"]];
 				}
 				else if (default_servers[port])
 				{
-					std::cout << ": default server\n";
+					std::cout << " -> default server\n";
 					clients[i].server = default_servers[port];
 				}
 				else
 				{
-					std::cout << ": not found\n";
+					std::cout << " -> not found\n";
 					send_error_page(400, clients[i]);
 					drop_client(clients[i]);
 					continue;
@@ -279,7 +280,7 @@ void ServerManager::treat_request()
 				}
 				drop_client(clients[i]);
 				i--;
-				std::cout << "> request completed\n";
+				std::cout << "> Request completed\n";
 			}
 		}
 	}
@@ -310,7 +311,7 @@ void ServerManager::get_method(Client &client, std::string path)
 	{
 		if (S_ISDIR(buf.st_mode))
 		{
-			std::cout << "> path is directory\n";
+			std::cout << "> Current path is directory\n";
 			if (client.server->autoindex)
 			{
 				send_autoindex_page(client, path);
@@ -441,7 +442,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 
 void ServerManager::send_autoindex_page(Client &client, std::string path)
 {
-	std::cout << "> send autoindex page\n";
+	std::cout << "> Send autoindex page\n";
 	std::string addr = find_path_in_root(path, client);
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
@@ -502,7 +503,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 
 void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
 {
-	std::cout << "> send error page\n";
+	std::cout << "> Send error page\n";
 	std::ifstream page;
 
 	if (client.server->error_pages.find(code) != client.server->error_pages.end())

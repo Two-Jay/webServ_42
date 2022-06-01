@@ -55,8 +55,8 @@ int Request::parsing(std::string request)
 	unsigned long i;
 	int j;
 
-	std::cout << "> request parsing\n";
-	std::cout << "request string : [" << request << "]\n";
+	std::cout << "> Request parsing\n";
+	std::cout << "Request--------------------------\n" << request << "\n----------------------------------\n"; 
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	if (method == "PUT")
