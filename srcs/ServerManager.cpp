@@ -177,6 +177,29 @@ void ServerManager::drop_client(Client client)
 ** Request Treatment methods
 */
 
+bool static is_request_done(char *request)
+{
+	std::cout << "is_request_done: request: " << request << "\n";
+	char *body = strstr(request, "\r\n\r\n");
+	if (!body)
+		return false;
+	if (strnstr(request, "chunked", strlen(body)))
+	{
+		body += 4;
+		if (strstr(body, "\r\n\r\n"))
+			return true;
+		return false;
+	}
+	if (strnstr(request, "Content-Length", strlen(body)))
+	{
+		body += 4;
+		if (strstr(body, "\r\n\r\n"))
+			return true;
+		return false;
+	}
+	return true;
+}
+
 void ServerManager::treat_request()
 {
 	for (unsigned long i = 0  ; i < clients.size() ; i++)
@@ -194,7 +217,7 @@ void ServerManager::treat_request()
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
 			// int recv_size = clients[i].get_received_size();
-			char *reqt = clients[i].request;
+			// char *reqt = clients[i].request;
 			if (r < 1)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
@@ -203,7 +226,7 @@ void ServerManager::treat_request()
 				drop_client(clients[i]);
 				i--;
 			}
-			else if (strstr(reqt, "\r\n\r\n"))
+			else if (is_request_done(clients[i].request))
 			{
 				Request req = Request(clients[i].get_socket());
 				int error_code;
