@@ -306,7 +306,7 @@ void ServerManager::treat_request()
 						send_error_page(404, clients[i]);
 					else if (is_response_timeout(clients[i]) == true)
 						send_error_page(408, clients[i]);
-					else if ((cgi_ret = send_cgi_response(clients[i], cgi, req.method)))
+					else if ((cgi_ret = send_cgi_response(clients[i], cgi, req)))
 						send_error_page(cgi_ret, clients[i]);
 				}
 				else
@@ -630,7 +630,7 @@ static void set_signal_kill_child_process(int sig)
     kill(-1,SIGKILL);
 }
 
-void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &client)
+void ServerManager::handle_cgi_GET_response(Response& res, std::string& cgi_ret, Client &client)
 {
 	std::stringstream ss(cgi_ret);
 	size_t tmpi;
@@ -662,18 +662,72 @@ void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
 
-int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, std::string& req_mothod)
+void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret, Client &client, Request& request)
 {
-	(void)req_mothod;
+	std::stringstream ss(cgi_ret);
+	size_t tmpi;
+	std::string tmp;
+	std::string body;
+
+	res.append_header("Server", client.server->server_name);
+	res.append_header("Connection", "close");
+	while (getline(ss, tmp, '\n')) {
+		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+		size_t mid_deli = tmp.find(":");
+		size_t end_deli = tmp.find("\n");
+		if (tmp[end_deli] == '\r') {
+			tmp.erase(tmp.length() - 1, 1);
+			end_deli -= 1;
+		}
+		if ((tmpi = tmp.find(";")) != std::string::npos) {
+			tmp = tmp.substr(0, tmpi);
+		}
+		std::string key = tmp.substr(0, mid_deli);
+		std::string value = tmp.substr(mid_deli + 1, end_deli);
+		res.append_header(key, value);
+	}
+	while (getline(ss, tmp, '\n')) {
+		body += tmp;
+		body += "\n";
+	}
+	
+	
+	std::string full_path = find_path_in_root(request.path, client);
+	size_t index = full_path.find_last_of("/");
+	if (index == std::string::npos)
+	{
+		send_error_page(500, client);
+		return;
+	}
+
+	std::string file_name = full_path.substr(index + 1);
+	std::string folder_path = full_path.substr(0, index);
+
+	std::string command = "mkdir -p " + folder_path;
+	system(command.c_str());
+	FILE *fp = fopen(full_path.c_str(), "w");
+	if (!fp)
+	{
+		send_error_page(500, client);
+		return;
+	}
+	fwrite(request.body.c_str(), request.body.size(), 1, fp);
+	fclose(fp);
+
+	res.append_header("Content-Length", std::to_string(res.get_body_size()));
+}
+
+int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& req)
+{
 	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
 		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
-		close(ch.get_pipe_read_fd());
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
+		close(ch.get_pipe_read_fd());
 		close(ch.get_pipe_write_fd());
 		return 500;
 	}
@@ -689,6 +743,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, std::string
 		return 500;
 	}
 	std::string cgi_ret = ch.read_from_CGI_process(10);
+	std::cout << cgi_ret << std::endl;
 	if (cgi_ret.empty())
 		return 500;
 	close(ch.get_pipe_read_fd());
@@ -697,16 +752,32 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, std::string
 	if (cgi_ret.compare("cgi: failed") == 0) return 400;
 	else
 	{
-		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
-		create_cgi_msg(res, cgi_ret, client);
-		std::string result = res.serialize();
-		int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
-		if (send_ret < 0)
-			return 500;
-		else if (send_ret == 0)
-			return 400;
-		else
-			std::cout << ">> cgi responsed\n";
+		if (req.method == "GET")
+		{
+			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			handle_cgi_GET_response(res, cgi_ret, client);
+			std::string result = res.serialize();
+			int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
+			if (send_ret < 0)
+				return 500;
+			else if (send_ret == 0)
+				return 400;
+			else
+				std::cout << ">> cgi responsed\n";
+		}
+		if (req.method == "POST")
+		{
+			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			handle_cgi_POST_response(res, cgi_ret, client, req);
+			std::string result = res.serialize();
+			int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
+			if (send_ret < 0)
+				return 500;
+			else if (send_ret == 0)
+				return 400;
+			else
+				std::cout << ">> cgi responsed\n";
+		}
 	}
 	return 0;
 }

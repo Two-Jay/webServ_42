@@ -48,24 +48,28 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->env["CONTENT_LENGTH"] = "-1";
-	if (request.method == "GET")
-	{
-		load_file_resource();
-	}
-	loc.print_location_info();
+	load_file_resource(request);
 }
 
-void CgiHandler::load_file_resource() {
-	this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
-	char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
-	memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
-	int r = 1;
-	while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+void CgiHandler::load_file_resource(Request& req) {
+	if (req.method == "GET")
 	{
-		this->file_resource += buffer;
+		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
+		char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
 		memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
+		int r = 1;
+		while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+		{
+			this->file_resource += buffer;
+			memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
+		}
+		this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 	}
-	this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
+	if (req.method == "POST")
+	{
+		this->file_resource = req.body;
+		this->env["CONTENT_LENGTH"] = NumberToString(req.body.size());
+	}
 }
 
 std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
