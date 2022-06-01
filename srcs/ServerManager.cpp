@@ -440,34 +440,56 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
+	std::cout << "1\n";
 	if (request.headers.find("Content-Length") == request.headers.end())
 	{
 		send_error_page(411, client);
 		return;
 	}
 
+	std::cout << "2\n";
 	std::string full_path = find_path_in_root(request.path, client);
-	size_t index = full_path.find_last_of("/");
-	if (index == std::string::npos)
-	{
-		send_error_page(500, client);
-		return;
-	}
-	std::string file_name = full_path.substr(index + 1);
-	std::string folder_path = full_path.substr(0, index);
+	// struct stat dir
 
-	std::string command = "mkdir -p " + folder_path;
-	system(command.c_str());
-	FILE *fp = fopen(full_path.c_str(), "w");
-	if (!fp)
+	struct stat buf;
+	lstat(full_path.c_str(), &buf);
+	if (S_ISDIR(buf.st_mode))
 	{
-		send_error_page(500, client);
-		return;
+		std::cout << "request: " << request.headers << "\n";
+		char *boundary = (char*)strstr(request.headers["Content-Type"].c_str(), "boundary=");
+		if (boundary != NULL)
+		{
+			char *str = (char*)strstr(request.body.c_str(), boundary);
+			if (str) {
+				// post file data parsing
+			}
+		}
+		else
+		{
+			send_error_page(500, client);
+			return;
+		}
+	}
+	else
+	{
+		std::cout << "full_path: " << full_path << "\n";
+		size_t index = full_path.find_last_of("/");
+		std::string file_name = full_path.substr(index + 1);
+		std::string folder_path = full_path.substr(0, index);
+
+		std::string command = "mkdir -p " + folder_path;
+		system(command.c_str());
+		FILE *fp = fopen(full_path.c_str(), "w");
+		if (!fp)
+		{
+			send_error_page(500, client);
+			return;
+		}
+
+		fwrite(request.body.c_str(), request.body.size(), 1, fp);
+		fclose(fp);
 	}
 
-	fwrite(request.body.c_str(), request.body.size(), 1, fp);
-	fclose(fp);
-	
 	Response response(status_info[201]);
 	response.append_header("Connection", "close");
 	std::string header = response.make_header();
