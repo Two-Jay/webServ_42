@@ -34,9 +34,8 @@ public:
 	ServerManager(std::vector<Server> servers);
 	~ServerManager();
 
-	void accept_sockets();
-
 	void wait_to_client();
+	void accept_sockets();
 	void drop_client(Client client);
 
 	void create_servers();
@@ -48,25 +47,34 @@ public:
 private:
 	void add_fd_selectPoll(int fd, fd_set* fds);
 	void run_selectPoll(fd_set *reads, fd_set *writes);
-	void send_cgi_response(Client& client, CgiHandler& ch);
-	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods = NULL);
-	void send_redirection(Client &client, std::string request_method);
-	int	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
-	std::string methodtype_to_s(MethodType method);
-	bool handle_CGI(Request *request, Location *loc);
-	bool is_response_timeout(Client& client);
 
 	void get_method(Client &client, std::string path);
 	void post_method(Client &client, Request &request);
 	void delete_method(Client &client, std::string path);
 
 	void send_autoindex_page(Client &client, std::string path);
+	void send_redirection(Client &client, std::string request_method);
+	void send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods = NULL);
+
+	bool is_cgi(Request *request, Location *loc);
+	void create_cgi_msg(Response& res, std::string& cgi_ret, Client &client);
+	void send_cgi_response(Client& client, CgiHandler& ch);
+	
+	/*
+	** ServerManager_helper
+	*/
+
+	bool	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
+	bool	is_response_timeout(Client& client);
+	bool	is_loc_check(std::string path, Client &client);
+
+	std::string methodtype_to_s(MethodType method);
 
 	const char *find_content_type(const char *path);
 	std::string find_path_in_root(std::string path, Client &client);
-	std::string get_status_cgi(std::string& cgi_ret);
-	void create_cgi_msg(Response& res, std::string& cgi_ret, Client &client);
+
 	std::string read_with_timeout(int fd, int timeout_ms);
+	std::string get_status_cgi(std::string& cgi_ret);
 };
 
 #endif

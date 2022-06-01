@@ -70,28 +70,6 @@ void ServerManager::create_servers()
 	}
 }
 
-void ServerManager::accept_sockets()
-{
-	int server;
-	std::map<std::string, Server*>::iterator it;
-	for (it = default_servers.begin(); it != default_servers.end(); it++)
-	{
-		server = (*it).second->listen_socket;
-		if (FD_ISSET(server, &reads))
-		{
-			clients.push_back(Client());
-			Client &client = clients.back();
-			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
-			if (client.get_socket() < 0)
-			{
-				fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
-				exit(1);
-			}
-			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
-		}
-	}
-}
-
 void ServerManager::close_servers()
 {
 	std::map<std::string, Server*>::iterator it;
@@ -99,19 +77,8 @@ void ServerManager::close_servers()
 		close((*it).second->listen_socket);
 }
 
-void ServerManager::print_servers_info()
-{
-	std::cout << "=================================================\n";
-	std::cout << "            Total Server Informations            \n";
-	std::cout << "=================================================\n";
-	std::map<std::string, Server*>::iterator it;
-	for (it = default_servers.begin(); it != default_servers.end(); it++)
-		(*it).second->print_server_info();
-	std::cout << "=================================================\n";
-}
-
 /*
-** Client methods
+** Poll Management Methods
 */
 
 void ServerManager::add_fd_selectPoll(int fd, fd_set *fds)
@@ -146,6 +113,10 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	this->writes = *writes;
 }
 
+/*
+** Client methods
+*/
+
 void ServerManager::wait_to_client()
 {
 	// int recv;
@@ -160,6 +131,28 @@ void ServerManager::wait_to_client()
 	for (unsigned long i = 0; i < clients.size(); i++)
 		add_fd_selectPoll(clients[i].get_socket(), &reads);
 	run_selectPoll(&reads, &writes);
+}
+
+void ServerManager::accept_sockets()
+{
+	int server;
+	std::map<std::string, Server*>::iterator it;
+	for (it = default_servers.begin(); it != default_servers.end(); it++)
+	{
+		server = (*it).second->listen_socket;
+		if (FD_ISSET(server, &reads))
+		{
+			clients.push_back(Client());
+			Client &client = clients.back();
+			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
+			if (client.get_socket() < 0)
+			{
+				fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
+				exit(1);
+			}
+			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
+		}
+	}
 }
 
 void ServerManager::drop_client(Client client)
@@ -181,23 +174,8 @@ void ServerManager::drop_client(Client client)
 }
 
 /*
-** Response methods
+** Request Treatment methods
 */
-
-bool ServerManager::handle_CGI(Request *request, Location *loc)
-{
-	std::cout << "handle_cgi\n";
-	loc->print_location_info();
-	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
-	it != loc->cgi_info.end(); it++)
-	{
-		std::cout << "get_path: " << request->get_path() << "\n";
-		std::cout << "it->first: " << it->first << "\n"; 
-		if (request->get_path().find(it->first) != std::string::npos)
-			return true;
-	}
-	return false;
-}
 
 void ServerManager::treat_request()
 {
@@ -275,7 +253,7 @@ void ServerManager::treat_request()
 					continue;
 				}
 				
-				if (loc && handle_CGI(&req, loc))
+				if (loc && is_cgi(&req, loc))
 				{
 					std::cout << "cgi\n";
 					CgiHandler cgi(req, *loc);
@@ -308,215 +286,9 @@ void ServerManager::treat_request()
 	}
 }
 
-static void set_signal_kill_child_process(int sig)
-{
-	(void) sig;
-    kill(-1,SIGKILL);
-}
-
-void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
-{
-	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
-	this->run_selectPoll(&(this->reads), &(this->writes));
-	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
-	{
-		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
-		close(ch.get_pipe_read_fd());
-		signal(SIGALRM, set_signal_kill_child_process);
-		alarm(30);
-		signal(SIGALRM, SIG_DFL);
-		close(ch.get_pipe_write_fd());
-		send_error_page(500, client);
-		drop_client(client);
-		return ;
-	}
-	ch.write_to_CGI_process();
-	FD_ZERO(&this->writes);
-	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
-	this->run_selectPoll(&(this->reads), &(this->writes));
-	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
-	{
-		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
-		close(ch.get_pipe_read_fd());
-		close(ch.get_pipe_write_fd());
-		send_error_page(500, client);
-		drop_client(client);
-		return ;
-	}
-	std::string cgi_ret = ch.read_from_CGI_process(10);
-	close(ch.get_pipe_read_fd());
-	close(ch.get_pipe_write_fd());
-	std::cout << "successfully read\n";
-	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client);
-	else
-	{
-		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
-		create_cgi_msg(res, cgi_ret, client);
-		std::string result = res.serialize();
-		send(client.get_socket(), result.c_str(), result.size(), 0);
-		std::cout << ">> cgi responsed\n";
-	}
-}
-
-std::string ServerManager::get_status_cgi(std::string& cgi_ret)
-{
-	std::string status_line;
-	std::stringstream ss(cgi_ret);
-
-	getline(ss, status_line, '\n');
-	cgi_ret.erase(0, status_line.length() + 1);
-	status_line.erase(0, 8);
-	status_line.erase(status_line.length() - 1, 1);
-	return status_line;
-}
-
-void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &client)
-{
-	std::stringstream ss(cgi_ret);
-	size_t tmpi;
-	std::string tmp;
-	std::string body;
-
-	res.append_header("Server", client.server->server_name);
-	res.append_header("Connection", "close");
-	while (getline(ss, tmp, '\n')) {
-		if (tmp.length() == 1 && tmp[0] == '\r') break ;
-		size_t mid_deli = tmp.find(":");
-		size_t end_deli = tmp.find("\n");
-		if (tmp[end_deli] == '\r') {
-			tmp.erase(tmp.length() - 1, 1);
-			end_deli -= 1;
-		}
-		if ((tmpi = tmp.find(";")) != std::string::npos) {
-			tmp = tmp.substr(0, tmpi);
-		}
-		std::string key = tmp.substr(0, mid_deli);
-		std::string value = tmp.substr(mid_deli + 1, end_deli);
-		res.append_header(key, value);
-	}
-	while (getline(ss, tmp, '\n')) {
-		body += tmp;
-		body += "\n";
-	}
-	res.set_body(body);
-	res.append_header("Content-Length", std::to_string(res.get_body_size()));
-}
-
-bool ServerManager::is_response_timeout(Client& client)
-{
-	static timeval tv;
-	
-	gettimeofday(&tv, NULL);
-	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
-	client.set_last_time_sec(tv);
-	return false;
-}
-
-void ServerManager::send_redirection(Client &client, std::string request_method)
-{
-	(void) request_method;
-	std::cout << ">> send redirection response\n";
-	Response response(status_info[client.server->redirect_status]);
-	if (client.server->redirect_status == 300)
-		response.make_status_body(client.server->redirect_url);
-	else
-		response.make_status_body();
-	response.append_header("Server", client.server->server_name);
-	response.append_header("Date", get_current_date_GMT());
-	response.append_header("Content-Type", "text/html");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	// response.append_header("Connection", "keep-alive");
-	response.append_header("Location", client.server->redirect_url);
-
-	std::string result = response.serialize();
-	send(client.get_socket(), result.c_str(), result.size(), 0);
-}
-
-void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
-{
-	std::cout << "> send error page\n";
-	std::ifstream page;
-
-	if (client.server->error_pages.find(code) != client.server->error_pages.end())
-	{
-		page.open(client.server->error_pages[code]);
-		if (!page.is_open())
-			code = 404;
-	}
-
-	Response response(status_info[code]);
-	if (page.is_open())
-	{
-		std::string body;
-		std::string line;
-		while (!page.eof())
-		{
-			getline(page, line);
-			body += line;
-			body += '\n';
-		}
-		response.body = body;
-		page.close();
-	}
-	else
-		response.make_status_body();
-	
-	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	response.append_header("Content-Type", "text/html");
-	if (code == 405)
-	{
-		std::string allowed_method_list;
-		for (unsigned long i = 0; i < (*allow_methods).size(); i++)
-		{
-			allowed_method_list += methodtype_to_s((*allow_methods)[i]);
-			if (i < (*allow_methods).size() - 1)
-				allowed_method_list += ", ";
-		}
-		response.append_header("Allow", allowed_method_list);
-	}
-
-	std::string result = response.serialize();
-	send(client.get_socket(), result.c_str(), result.size(), 0);
-}
-
-int	ServerManager::is_allowed_method(std::vector<MethodType> allow_methods, std::string method) 
-{
-	if (method == "GET")
-		return true;
-	for (std::vector<MethodType>::iterator it = allow_methods.begin(); 
-	it != allow_methods.end(); it++)
-	{
-		if (method == methodtype_to_s(*it))
-			return true;
-	}
-	return false;
-}
-
-std::string ServerManager::methodtype_to_s(MethodType method) {
-	if (method == GET)
-		return "GET";
-	else if (method == POST)
-		return "POST";
-	else if (method == DELETE)
-		return "DELETE";
-	return "";
-}
-
 /*
-** http methods
+** HTTP Methods
 */
-
-bool is_loc_check(std::string path, Client &client)
-{
-	Location *cur_loc = client.server->get_cur_location(path);
-	if (!cur_loc)
-		return false;
-	std::string root = cur_loc->path;
-	if (path == root)
-		return true;
-	return false;
-}
 
 void ServerManager::get_method(Client &client, std::string path)
 {
@@ -665,42 +437,8 @@ void ServerManager::delete_method(Client &client, std::string path)
 }
 
 /*
-** helper methods
+** Response Methods
 */
-
-const char *ServerManager::find_content_type(const char *path)
-{
-	const char *last_dot = strrchr(path, '.');
-	if (last_dot) {
-		if (strcmp(last_dot, ".css") == 0) return "text/css";
-		if (strcmp(last_dot, ".csv") == 0) return "text/csv";
-		if (strcmp(last_dot, ".html") == 0) return "text/html";
-		if (strcmp(last_dot, ".js") == 0) return "application/javascript";
-		if (strcmp(last_dot, ".json") == 0) return "application/json";
-		if (strcmp(last_dot, ".pdf") == 0) return "application/pdf";
-		if (strcmp(last_dot, ".gif") == 0) return "image/gif";
-		if (strcmp(last_dot, ".jpeg") == 0) return "image/jpeg";
-		if (strcmp(last_dot, ".jpg") == 0) return "image/jpeg";
-		if (strcmp(last_dot, ".png") == 0) return "image/png";
-		if (strcmp(last_dot, ".svg") == 0) return "image/svg+xml";
-	}
-	return "text/plain";
-}
-
-std::string ServerManager::find_path_in_root(std::string path, Client &client)
-{
-	std::string full_path = "";
-	std::string location;
-	full_path.append(client.get_root_path(path));
-	Location *loc = client.server->get_cur_location(path);
-	if (loc)
-		location = loc->path;
-	else
-		location = "";
-	std::string str = path.substr(location.length());
-	full_path.append(str);
-	return full_path;
-}
 
 void ServerManager::send_autoindex_page(Client &client, std::string path)
 {
@@ -718,7 +456,6 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 	struct dirent *file = NULL;
 	while ((file = readdir(dir)) != NULL)
 	{
-		std::cout << "file name: " << file->d_name << "\n";
 		if (strcmp(file->d_name, ".") || strcmp(file->d_name, ".."))
 			result += "<a href=\"" + path + "/" + file->d_name;
 		else if (path[path.length() - 1] == '/')
@@ -740,4 +477,158 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 	
 	send(client.get_socket(), header.c_str(), header.size(), 0);
 	send(client.get_socket(), result.c_str(), result.length(), 0);
+}
+
+void ServerManager::send_redirection(Client &client, std::string request_method)
+{
+	(void) request_method;
+	std::cout << ">> send redirection response\n";
+	Response response(status_info[client.server->redirect_status]);
+	if (client.server->redirect_status == 300)
+		response.make_status_body(client.server->redirect_url);
+	else
+		response.make_status_body();
+	response.append_header("Server", client.server->server_name);
+	response.append_header("Date", get_current_date_GMT());
+	response.append_header("Content-Type", "text/html");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	// response.append_header("Connection", "keep-alive");
+	response.append_header("Location", client.server->redirect_url);
+
+	std::string result = response.serialize();
+	send(client.get_socket(), result.c_str(), result.size(), 0);
+}
+
+void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
+{
+	std::cout << "> send error page\n";
+	std::ifstream page;
+
+	if (client.server->error_pages.find(code) != client.server->error_pages.end())
+	{
+		page.open(client.server->error_pages[code]);
+		if (!page.is_open())
+			code = 404;
+	}
+
+	Response response(status_info[code]);
+	if (page.is_open())
+	{
+		std::string body;
+		std::string line;
+		while (!page.eof())
+		{
+			getline(page, line);
+			body += line;
+			body += '\n';
+		}
+		response.body = body;
+		page.close();
+	}
+	else
+		response.make_status_body();
+	
+	response.append_header("Connection", "close");
+	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Type", "text/html");
+	if (code == 405)
+	{
+		std::string allowed_method_list;
+		for (unsigned long i = 0; i < (*allow_methods).size(); i++)
+		{
+			allowed_method_list += methodtype_to_s((*allow_methods)[i]);
+			if (i < (*allow_methods).size() - 1)
+				allowed_method_list += ", ";
+		}
+		response.append_header("Allow", allowed_method_list);
+	}
+
+	std::string result = response.serialize();
+	send(client.get_socket(), result.c_str(), result.size(), 0);
+}
+
+/*
+** CGI Methods
+*/
+
+static void set_signal_kill_child_process(int sig)
+{
+	(void) sig;
+    kill(-1,SIGKILL);
+}
+
+void ServerManager::create_cgi_msg(Response& res, std::string& cgi_ret, Client &client)
+{
+	std::stringstream ss(cgi_ret);
+	size_t tmpi;
+	std::string tmp;
+	std::string body;
+
+	res.append_header("Server", client.server->server_name);
+	res.append_header("Connection", "close");
+	while (getline(ss, tmp, '\n')) {
+		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+		size_t mid_deli = tmp.find(":");
+		size_t end_deli = tmp.find("\n");
+		if (tmp[end_deli] == '\r') {
+			tmp.erase(tmp.length() - 1, 1);
+			end_deli -= 1;
+		}
+		if ((tmpi = tmp.find(";")) != std::string::npos) {
+			tmp = tmp.substr(0, tmpi);
+		}
+		std::string key = tmp.substr(0, mid_deli);
+		std::string value = tmp.substr(mid_deli + 1, end_deli);
+		res.append_header(key, value);
+	}
+	while (getline(ss, tmp, '\n')) {
+		body += tmp;
+		body += "\n";
+	}
+	res.set_body(body);
+	res.append_header("Content-Length", std::to_string(res.get_body_size()));
+}
+
+void ServerManager::send_cgi_response(Client& client, CgiHandler& ch)
+{
+	this->add_fd_selectPoll(ch.get_pipe_write_fd(), &(this->writes));
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
+	{
+		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		signal(SIGALRM, set_signal_kill_child_process);
+		alarm(30);
+		signal(SIGALRM, SIG_DFL);
+		close(ch.get_pipe_write_fd());
+		send_error_page(500, client);
+		drop_client(client);
+		return ;
+	}
+	ch.write_to_CGI_process();
+	FD_ZERO(&this->writes);
+	this->add_fd_selectPoll(ch.get_pipe_read_fd(), &(this->reads));
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
+	{
+		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
+		close(ch.get_pipe_read_fd());
+		close(ch.get_pipe_write_fd());
+		send_error_page(500, client);
+		drop_client(client);
+		return ;
+	}
+	std::string cgi_ret = ch.read_from_CGI_process(10);
+	close(ch.get_pipe_read_fd());
+	close(ch.get_pipe_write_fd());
+	std::cout << "successfully read\n";
+	if (cgi_ret.compare("cgi: failed") == 0) send_error_page(400, client);
+	else
+	{
+		Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+		create_cgi_msg(res, cgi_ret, client);
+		std::string result = res.serialize();
+		send(client.get_socket(), result.c_str(), result.size(), 0);
+		std::cout << ">> cgi responsed\n";
+	}
 }
