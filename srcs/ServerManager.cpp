@@ -443,13 +443,15 @@ void ServerManager::delete_method(Client &client, std::string path)
 void ServerManager::send_autoindex_page(Client &client, std::string path)
 {
 	std::cout << "> send autoindex page\n";
-	std::string addr = client.get_root_path(path) + "/";
+	std::string addr = find_path_in_root(path, client);
 	std::string result = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
 		"<title>webserv</title></head><body><h1>webserv</h1><h2>Index of ";
 	result += path;
 	result += "<hr><div>";
 
 	DIR *dir = NULL;
+	if (path[path.size() - 1] != '/')
+		path += "/";
 	if ((dir = opendir(addr.c_str())) == NULL)
 		return;
 
@@ -457,11 +459,11 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 	while ((file = readdir(dir)) != NULL)
 	{
 		if (strcmp(file->d_name, ".") || strcmp(file->d_name, ".."))
-			result += "<a href=\"" + path + "/" + file->d_name;
+			result += "<a href=\"" + path + file->d_name;
 		else if (path[path.length() - 1] == '/')
 			result += "<a href=\"" + path + file->d_name;
 		else
-			result += "<a href=\"" + path + "/" + file->d_name;
+			result += "<a href=\"" + path + file->d_name;
 		result += (file->d_type == DT_DIR ? "/" : "") + (std::string)"\">";
 		result += (std::string)(file->d_name) + (file->d_type == DT_DIR ? "/" : "") + "</a><br>";
 	}
