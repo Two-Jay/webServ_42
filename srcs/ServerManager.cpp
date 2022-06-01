@@ -233,7 +233,6 @@ void ServerManager::treat_request()
 					drop_client(clients[i]);
 					continue;
 				}
-				
 				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
@@ -397,7 +396,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	response.append_header("Date", get_current_date_GMT());
 	response.append_header("Content-Type", "text/html");
 	response.append_header("Content-Length", std::to_string(response.get_body_size()));
-	response.append_header("Connection", "keep-alive");
+	// response.append_header("Connection", "keep-alive");
 	response.append_header("Location", client.server->redirect_url);
 
 	std::string result = response.serialize();
