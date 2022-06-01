@@ -211,12 +211,19 @@ void ServerManager::treat_request()
 			{
 				send_error_page(400, clients[i]);
 				drop_client(clients[i]);
+				i--;
 				continue;
 			}
 			int r = recv(clients[i].get_socket(), 
 					clients[i].request + clients[i].get_received_size(), 
 					MAX_REQUEST_SIZE - clients[i].get_received_size(), 0);
 			clients[i].set_received_size(clients[i].get_received_size() + r);
+			if (clients[i].get_received_size() > MAX_REQUEST_SIZE) {
+				send_error_page(413, clients[i]);
+				drop_client(clients[i]);
+				i--;
+				continue;
+			}
 			// int recv_size = clients[i].get_received_size();
 			// char *reqt = clients[i].request;
 			if (r < 0)
@@ -243,6 +250,7 @@ void ServerManager::treat_request()
 				{
 					send_error_page(error_code, clients[i]);
 					drop_client(clients[i]);
+					i--;
 					continue;
 				}
 
@@ -263,6 +271,7 @@ void ServerManager::treat_request()
 					std::cout << " -> not found\n";
 					send_error_page(400, clients[i]);
 					drop_client(clients[i]);
+					i--;
 					continue;
 				}
 				if (req.headers.find("Content-Length") != req.headers.end() && 
@@ -270,6 +279,7 @@ void ServerManager::treat_request()
 				{
 					send_error_page(413, clients[i]);
 					drop_client(clients[i]);
+					i--;
 					continue;
 				}
 
@@ -282,6 +292,7 @@ void ServerManager::treat_request()
 				{
 					send_error_page(405, clients[i], &method_list);
 					drop_client(clients[i]);
+					i--;
 					continue;
 				}
 				
