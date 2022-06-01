@@ -184,14 +184,21 @@ bool static is_request_done(char *request)
 	char *body = strstr(request, "\r\n\r\n");
 	if (!body)
 		return false;
-	if (strnstr(request, "chunked", strlen(body)))
+	if (strnstr(request, "chunked", strlen(request) - strlen(body)))
 	{
 		body += 4;
 		if (strstr(body, "\r\n\r\n"))
 			return true;
 		return false;
 	}
-	if (strnstr(request, "Content-Length", strlen(body)))
+	else if (strnstr(request, "Content-Length", strlen(request) - strlen(body)))
+	{
+		body += 4;
+		if (strstr(body, "\r\n\r\n"))
+			return true;
+		return false;
+	}
+	else if (strnstr(request, "boundary=", strlen(request) - strlen(body)))
 	{
 		body += 4;
 		if (strstr(body, "\r\n\r\n"))
@@ -584,7 +591,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 
 void ServerManager::send_error_page(int code, Client &client, std::vector<MethodType> *allow_methods)
 {
-	std::cout << "> Send error page\n";
+	std::cout << "> Send error page(" << code << ")\n";
 	std::ifstream page;
 
 	if (client.server->error_pages.find(code) != client.server->error_pages.end())
