@@ -25,7 +25,7 @@ static bool check_protocol(std::map<std::string, std::string>::mapped_type& pars
 
 static std::string parse_request_body_chunked(std::string& request) {
 	std::string ret;
-    std::size_t size = 1, whole_body_size = 0;
+    std::size_t size = 1;
     std::string line = request;
     while (true) {
         line = line.erase(0, 2);
@@ -46,7 +46,7 @@ static std::string parse_request_body(std::string& request, int index) {
 static int parse_headers_line(std::map<std::string, std::string>& headers, std::string& request, int index) {
 	int deli = request.find_first_of(":", index);
 	int end = request.find_first_of("\r\n", deli);
-	headers[request.substr(index, deli - index)] = request.substr(deli + 2, end + 2 - deli - 3);
+	headers[request.substr(index, deli - index)] = request.substr(deli + 2, end - deli - 2);
 	return end;
 }
 
@@ -56,6 +56,7 @@ int Request::parsing(std::string request)
 	int j;
 
 	std::cout << "> request parsing\n";
+	std::cout << "request string : [" << request << "]\n";
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	if (method == "PUT")

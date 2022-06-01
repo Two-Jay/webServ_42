@@ -214,8 +214,7 @@ void ServerManager::treat_request()
 					continue;
 				}
 
-				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1);
-				std::cout << "> port " << port;
+				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1); 
 				if (servers[req.headers["Host"]])
 				{
 					std::cout << ": found in server name\n";
