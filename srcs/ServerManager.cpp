@@ -180,7 +180,6 @@ void ServerManager::drop_client(Client client)
 
 bool static is_request_done(char *request)
 {
-	std::cout << "is_request_done: request: " << request << "\n";
 	char *body = strstr(request, "\r\n\r\n");
 	if (!body)
 		return false;
