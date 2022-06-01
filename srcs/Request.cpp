@@ -75,7 +75,7 @@ int Request::parsing(std::string request)
 			break;
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
-			if (headers["Transfer-Encoding"] == "chunked")
+			if (strstr(headers["Transfer-Encoding"].c_str(), "chunked") != NULL)
 				this->body = parse_request_body_chunked(request);
 			else
 				this->body = parse_request_body(request, i);

@@ -3,6 +3,7 @@
 
 #include "Utils.hpp"
 #include "DataStructs.hpp"
+#include <cstring>
 
 class Request
 {
