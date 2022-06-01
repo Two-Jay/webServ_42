@@ -19,7 +19,7 @@ public:
 	char request[MAX_REQUEST_SIZE + 1];
 	Server *server;
 
-	Client(Server *server);
+	Client();
 	~Client();
 	
 	int get_socket() const;

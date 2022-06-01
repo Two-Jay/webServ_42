@@ -1,8 +1,8 @@
 #include "../includes/Client.hpp"
 
-Client::Client(Server *server)
+Client::Client()
 {
-	this->server = server;
+	this->server = NULL;
 	address_length = sizeof(struct sockaddr_storage);
 	received_size = 0;
 	gettimeofday(&last_get_time, NULL);

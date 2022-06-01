@@ -16,8 +16,9 @@ public:
 	std::string server_name;
 	std::vector<std::string> index;
 	std::vector<MethodType> allow_methods;
-	std::vector<Location> locations;
 	std::map<int, std::string> error_pages;
+	
+	std::vector<Location> locations;
 	
 	int redirect_status;
 	std::string redirect_url;
@@ -27,10 +28,9 @@ public:
 
 public:
 	std::string host;
-	std::vector<std::string> port;
+	std::string port;
 	
-	std::vector<int> listen_socket;
-	std::vector<int> fd;//??
+	int listen_socket;
 	
 	Server();
 	~Server();
