@@ -236,7 +236,7 @@ void ServerManager::treat_request()
 			}
 			else if (r == 0)
 			{
-				std::cout << "> The connection has been closed or 0 bytes were passed to send() (" << r << ")[" << clients[i].get_client_address() << "].\n";
+				std::cout << "> The connection has been closed. (" << r << ")[" << clients[i].get_client_address() << "].\n";
 				fprintf(stderr, "[ERROR] recv() failed.\n");
 				send_error_page(400, clients[i]);
 				drop_client(clients[i]);
@@ -540,8 +540,22 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 	response.append_header("Content-Type", "text/html");
 	std::string header = response.make_header();
 	
-	send(client.get_socket(), header.c_str(), header.size(), 0);
-	send(client.get_socket(), result.c_str(), result.length(), 0);
+	int send_ret = send(client.get_socket(), header.c_str(), header.size(), 0);
+	if (send_ret < 0)
+	{
+		send_error_page(500, client, NULL);
+		return;
+	}
+	else if (send_ret == 0)
+	{
+		send_error_page(400, client, NULL);
+		return;
+	}
+	send_ret = send(client.get_socket(), result.c_str(), result.length(), 0);
+	if (send_ret < 0)
+		send_error_page(500, client, NULL);
+	else if (send_ret == 0)
+		send_error_page(400, client, NULL);
 }
 
 void ServerManager::send_redirection(Client &client, std::string request_method)
