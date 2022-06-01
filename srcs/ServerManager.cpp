@@ -298,7 +298,7 @@ void ServerManager::treat_request()
 				
 				if (loc && is_cgi(&req, loc))
 				{
-					std::cout << "cgi\n";
+					std::cout << "cgi checked !!!!!!! \n";
 					CgiHandler cgi(req, *loc);
 					int cgi_ret;
 					int read_fd = cgi.excute_CGI(req, *loc);
@@ -777,6 +777,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 				return 400;
 			else
 				std::cout << ">> cgi responsed\n";
+			std::cout << cgi_ret << std::endl;
 		}
 	}
 	return 0;
