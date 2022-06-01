@@ -142,7 +142,7 @@ void ServerManager::accept_sockets()
 		server = (*it).second->listen_socket;
 		if (FD_ISSET(server, &reads))
 		{
-			clients.push_back(Client());
+			clients.push_back(Client((*it).second));
 			Client &client = clients.back();
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
@@ -223,12 +223,12 @@ void ServerManager::treat_request()
 				}
 				else if (default_servers[port])
 				{
-					std::cout << ": default server\n";
+					std::cout << " -> default server\n";
 					clients[i].server = default_servers[port];
 				}
 				else
 				{
-					std::cout << ": not found\n";
+					std::cout << " -> not found\n";
 					send_error_page(400, clients[i]);
 					drop_client(clients[i]);
 					continue;
