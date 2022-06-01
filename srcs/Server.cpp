@@ -42,6 +42,8 @@ void Server::create_socket()
 			fprintf(stderr, "socket() failed. (%d)\n", errno);
 			exit(1);
 		}
+		int opt = 1;
+		setsockopt(socket_listen, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt));
 		std::cout << "> Binding socket to local address...\n";
 		if (bind(socket_listen, bind_addr->ai_addr, bind_addr->ai_addrlen))
 		{
