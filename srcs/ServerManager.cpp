@@ -27,6 +27,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
+
 	max_fd = -1;
 	for (unsigned long i = 0; i < _servers.size(); i++)
 	{
