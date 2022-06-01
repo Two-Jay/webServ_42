@@ -48,7 +48,7 @@ int Request::parsing(std::string request)
 		}
 		int deli = request.find_first_of(":", i);
 		int end = request.find_first_of("\r\n", deli);
-		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end + 2 - deli - 3);
+		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end - deli - 2);
 		if (end + 1 == '\0')
 			break;
 		i = end + 2;
