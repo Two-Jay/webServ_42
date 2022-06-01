@@ -640,10 +640,6 @@ void ServerManager::post_method(Client &client, Request &request)
 	std::cout << "> " << full_path << " posted\n";
 }
 
-int chuncked_check (Request& req) {
-	return 0;
-};
-
 void ServerManager::delete_method(Client &client, std::string path)
 {
 	std::cout << "DELETE method\n";

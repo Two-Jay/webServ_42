@@ -57,11 +57,13 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 
 void CgiHandler::load_file_resource() {
 	this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
-	char buffer[CGI_RESOURCE_BUFFER_SIZE];
-	int r = CGI_RESOURCE_BUFFER_SIZE;
+	char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
+	memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
+	int r = 1;
 	while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
 	{
 		this->file_resource += buffer;
+		memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
 	}
 	this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 }
@@ -159,17 +161,18 @@ void CgiHandler::set_pipe_read_fd(int fd) {
 
 std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	int rbytes = 1;
-	struct timeval timeout_tv;
-	char buf[CGI_READ_BUFFER_SIZE];
-	memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
+	// struct timeval timeout_tv;
+	char buf[CGI_READ_BUFFER_SIZE + 1];
+	memset(buf, 0, CGI_READ_BUFFER_SIZE + 1);
 	std::string ret;
 
-	timeout_tv.tv_sec = 0;
-	timeout_tv.tv_usec = 1000 * timeout_ms;
+	(void)timeout_ms;
+	// timeout_tv.tv_sec = 0;
+	// timeout_tv.tv_usec = 1000 * timeout_ms;
 	while (rbytes > 0) {
 		rbytes = read(this->get_pipe_read_fd(), buf, CGI_READ_BUFFER_SIZE);
 		ret += buf;
-		memset(buf, 0x00, CGI_READ_BUFFER_SIZE);
+		memset(buf, 0, CGI_READ_BUFFER_SIZE + 1);
 	}
 	return ret;
 };
