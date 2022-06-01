@@ -725,7 +725,7 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 		send_error_page(500, client);
 		return;
 	}
-	fwrite(request.body.c_str(), request.body.size(), 1, fp);
+	fwrite(body.c_str(), body.size(), 1, fp);
 	fclose(fp);
 
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
