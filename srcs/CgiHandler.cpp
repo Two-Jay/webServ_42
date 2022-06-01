@@ -23,6 +23,7 @@
 
 static void set_signal_kill_child_process(int sig)
 {
+	(void) sig;
     kill(-1,SIGKILL);
 }
 
@@ -116,8 +117,10 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		close(read_fd[0]);
 		char **env = set_env();
 		std::string extension = Request.get_path().substr(Request.get_path().find(".") + 1);
-		char *av[3] = { const_cast<char*>(loc.getCgiBinary(extension).c_str()), 
-		const_cast<char*>(loc.root.c_str()), NULL};
+		char *av[3];
+		av[0] = const_cast<char*>(loc.getCgiBinary(extension).c_str());
+		av[1] = const_cast<char*>(loc.root.c_str());
+		av[2] = NULL;
 		if (env)
 		{
 			ret1 = execve(av[0], av, env);

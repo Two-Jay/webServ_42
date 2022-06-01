@@ -78,10 +78,10 @@ void Server::print_server_info()
 		std::cout << "> allow_methods: " << allow_methods << "\n";
 		std::cout << "> error pages: ";
 		if (error_pages.size() > 0)
-		 std::cout << "\n" << error_pages;
+			std::cout << "\n" << error_pages;
 		else
-		 std::cout << "(empty)\n";
-		for (int i = 0; i < locations.size(); i++)
+			std::cout << "(empty)\n";
+		for (unsigned long i = 0; i < locations.size(); i++)
 			locations[i].print_location_info();
 	}
 	else
