@@ -23,19 +23,23 @@ static bool check_protocol(std::map<std::string, std::string>::mapped_type& pars
 	return true;
 }
 
-static std::string parse_request_body_chunked(std::string& request) {
-	std::string ret;
-    std::size_t size = 1;
-    std::string line = request;
-    while (true) {
-        line = line.erase(0, 2);
-        size = atoi(line.substr(0, line.find("\r\n")).c_str());
+static std::string parse_request_body_chunked(std::string& request, int index) {
+	std::size_t size = 1;
+    std::string ret, size_buf, line = request.substr(index + 2, request.size());
+
+	int i = 0;
+
+	while (true) {
+		size_t r = line.find_first_of("\r\n");
+		size_buf = line.substr(i, r);
+		size = StringToHexNumber(size_buf);
+		i += 2 + size_buf.size();
 		if (size == 0) break ;
-        line = line.erase(0, line.find("\r\n") + 2);
-        std::string msg = line.substr(0, line.find("\r\n"));
-        line.erase(0, msg.size());
-		ret += msg;
-    }
+		std::string buf = line.substr(i, i + size - 2);
+		// std::cout << "line : \n" << buf;
+		ret += buf;
+		i += size + 4;
+	}
 	return ret;
 }
 
@@ -75,10 +79,16 @@ int Request::parsing(std::string request)
 			break;
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
+
 			if (strstr(headers["Transfer-Encoding"].c_str(), "chunked") != NULL)
-				this->body = parse_request_body_chunked(request);
+			{
+				this->body = parse_request_body_chunked(request, i);
+			}
 			else
+			{
 				this->body = parse_request_body(request, i);
+			}
+
 			break;
 		}
 		int end = parse_headers_line(this->headers, request, i);

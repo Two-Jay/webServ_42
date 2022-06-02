@@ -18,6 +18,7 @@ std::string dir_listing();
 std::vector<std::string> split(std::string input, char delimiter);
 std::string get_ip(int client_fd);
 std::string get_current_date_GMT(void);
+size_t StringToHexNumber(std::string input);
 
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)
