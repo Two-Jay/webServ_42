@@ -37,7 +37,6 @@ bool	ServerManager::is_loc_check(std::string path, Client &client)
 
 bool	ServerManager::is_request_done(char *request)
 {
-	std::cout << "check\n";
 	char *body = strstr(request, "\r\n\r\n");
 	if (!body)
 		return false;
@@ -51,6 +50,12 @@ bool	ServerManager::is_request_done(char *request)
 	else if (strnstr(request, "Content-Length", strlen(request) - strlen(body)))
 	{
 		if (strstr(body, "\r\n\r\n"))
+			return true;
+		char *start = strnstr(request, "Content-Length: ", strlen(request) - strlen(body)) + 16;
+		char *end = strstr(start, "\r\n");
+		char *len = strndup(start, end - start);
+		int len_i = atoi(len);
+		if ((size_t)len_i <= strlen(body))
 			return true;
 		return false;
 	}
@@ -144,7 +149,7 @@ std::string ServerManager::get_status_cgi(std::string& cgi_ret)
 
 void	ServerManager::write_file_in_path(Client &client, std::string content, std::string path)
 {
-	std::cout << "full_path: " << path << "\n";
+	std::cout << "> write in: " << path << "\n";
 	size_t index = path.find_last_of("/");
 	std::string file_name = path.substr(index + 1);
 	std::string folder_path = path.substr(0, index);

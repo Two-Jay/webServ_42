@@ -222,7 +222,6 @@ void ServerManager::treat_request()
 			}
 			else if (is_request_done(clients[i].request))
 			{
-				std::cout << "\n\n" << clients[i].request << "\n\n";
 				Request req = Request(clients[i].get_socket());
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
@@ -412,32 +411,24 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	std::cout << "1\n";
 	if (request.headers.find("Content-Length") == request.headers.end())
 	{
 		send_error_page(411, client);
 		return;
 	}
 
-	std::cout << "2\n";
 	std::string full_path = find_path_in_root(request.path, client);
 
 	struct stat buf;
 	lstat(full_path.c_str(), &buf);
 	if (S_ISDIR(buf.st_mode))
 	{
-		std::cout << "3\n";
 		if (request.headers.find("Content-Type") != request.headers.end())
 		{
-			std::cout << "4\n";
 			size_t begin = request.headers["Content-Type"].find("boundary=") + 9;
 			if (begin != std::string::npos)
 			{
 				std::string boundary = request.headers["Content-Type"].substr(begin);
-				// std::cout << "headers: " << request.headers << "\n";
-				std::cout << "Content-Type: " << request.headers["Content-Type"] << "\n";
-				// std::cout << "body: " << request.body << "\n";
-				std::cout << "boundary: " << boundary << "\n";
 				begin = 0;
 				size_t end = 0;
 				std::string name;
@@ -448,13 +439,13 @@ void ServerManager::post_method(Client &client, Request &request)
 					if (begin == std::string::npos || end == std::string::npos)
 						break;
 					name = request.body.substr(begin, end - begin);
-					std::cout << "> name: " << name << "\n";
 					begin = request.body.find("\r\n\r\n", end) + 4;
 					end = request.body.find(boundary, begin);
-					write_file_in_path(client, request.body.substr(begin, end - begin - 2), full_path + "/" + name);
+					if (begin == std::string::npos || end == std::string::npos)
+						break;
+					write_file_in_path(client, request.body.substr(begin, end - begin - 3), full_path + "/" + name);
 					if (request.body[end + boundary.size()] == '-')
 						break;
-					break;
 				}
 			}
 			else
