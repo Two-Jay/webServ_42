@@ -21,7 +21,6 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(411, "411 Length Required"));
 	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
 	status_info.insert(std::make_pair(414, "414 URI Too Long"));
-	status_info.insert(std::make_pair(417, "417 Expectation Failed"));
 	status_info.insert(std::make_pair(429, "429 Too Many Request"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
