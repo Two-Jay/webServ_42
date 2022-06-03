@@ -320,7 +320,6 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
-	// char *dir_list;
 	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
 	lstat(full_path.c_str(), &buf);
@@ -333,39 +332,39 @@ void ServerManager::get_method(Client &client, std::string path)
 		if (S_ISDIR(buf.st_mode))
 		{
 			std::cout << "> Current path is directory\n";
-			if (client.server->autoindex)
-			{
-				send_autoindex_page(client, path);
-				fclose(fp);
-				return;
-			}
+			bool flag = false;
+			Location *loc = client.server->get_cur_location(path);
+			std::vector<std::string> indexes;
+			if (loc)
+				indexes = loc->index;
 			else
+				indexes = client.server->index;
+			if (full_path.back() != '/')
+				full_path.append("/");
+			for (unsigned long i = 0; i < indexes.size(); i++)
 			{
-				bool flag = false;
-				Location *loc = client.server->get_cur_location(path);
-				std::vector<std::string> indexes;
-				if (loc)
-					indexes = loc->index;
-				else
-					indexes = client.server->index;
-				if (full_path.back() != '/')
-					full_path.append("/");
-				for (unsigned long i = 0; i < indexes.size(); i++)
+				FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
+				if (fp)
 				{
-					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
-					if (fp)
-					{
-						fclose(fp);
-						full_path.append(indexes[i]);
-						flag = true;
-						break;
-					}
+					fclose(fp);
+					full_path.append(indexes[i]);
+					flag = true;
+					break;
 				}
-				if (!flag)
+			}
+			if (!flag)
+			{
+				if (client.server->autoindex)
 				{
-					send_error_page(404, client);
+					send_autoindex_page(client, path);
 					fclose(fp);
 					return;
+				}
+				else
+				{
+						send_error_page(404, client);
+						fclose(fp);
+						return;
 				}
 			}
 		}
