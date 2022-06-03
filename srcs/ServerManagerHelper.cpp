@@ -91,7 +91,8 @@ bool	ServerManager::is_cgi(Request *request, Location *loc)
 	return false;
 }
 
-std::string ServerManager::methodtype_to_s(MethodType method) {
+std::string ServerManager::methodtype_to_s(MethodType method)
+{
 	if (method == GET)
 		return "GET";
 	else if (method == POST)
@@ -104,7 +105,8 @@ std::string ServerManager::methodtype_to_s(MethodType method) {
 const char *ServerManager::find_content_type(const char *path)
 {
 	const char *last_dot = strrchr(path, '.');
-	if (last_dot) {
+	if (last_dot)
+	{
 		if (strcmp(last_dot, ".css") == 0) return "text/css";
 		if (strcmp(last_dot, ".csv") == 0) return "text/csv";
 		if (strcmp(last_dot, ".html") == 0) return "text/html";

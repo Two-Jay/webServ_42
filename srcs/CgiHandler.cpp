@@ -51,7 +51,8 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	load_file_resource(request);
 }
 
-void CgiHandler::load_file_resource(Request& req) {
+void CgiHandler::load_file_resource(Request& req)
+{
 	if (req.method == "GET")
 	{
 		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
@@ -80,7 +81,8 @@ std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
 	std::string req_path = req.get_path();
 
 	ret += pwd;
-	if (loc_root[0] == '.') {
+	if (loc_root[0] == '.')
+	{
 		loc_root = loc_root.substr(1);
 	}
 	ret += loc_root;
@@ -143,27 +145,33 @@ int CgiHandler::excute_CGI(Request &req, Location &loc)
 	}
 }
 
-std::string& CgiHandler::get_file_resource(void) {
+std::string& CgiHandler::get_file_resource(void)
+{
 	return this->file_resource;
 }
 
-int CgiHandler::get_pipe_write_fd(void) {
+int CgiHandler::get_pipe_write_fd(void)
+{
 	return this->pipe_wfd;
 };
 
-int CgiHandler::get_pipe_read_fd(void) {
+int CgiHandler::get_pipe_read_fd(void)
+{
 	return this->pipe_rfd;
 };
 
-void CgiHandler::set_pipe_write_fd(int fd) {
+void CgiHandler::set_pipe_write_fd(int fd)
+{
 	this->pipe_wfd = fd;
 };
 
-void CgiHandler::set_pipe_read_fd(int fd) {
+void CgiHandler::set_pipe_read_fd(int fd)
+{
 	this->pipe_rfd = fd;
 };
 
-std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
+std::string CgiHandler::read_from_CGI_process(int timeout_ms)
+{
 	int rbytes = 1;
 	// struct timeval timeout_tv;
 	char buf[CGI_READ_BUFFER_SIZE + 1];
@@ -173,7 +181,8 @@ std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	(void)timeout_ms;
 	// timeout_tv.tv_sec = 0;
 	// timeout_tv.tv_usec = 1000 * timeout_ms;
-	while (rbytes > 0) {
+	while (rbytes > 0)
+	{
 		rbytes = read(this->get_pipe_read_fd(), buf, CGI_READ_BUFFER_SIZE);
 		if (rbytes < 0)
 			return NULL;
@@ -183,7 +192,8 @@ std::string CgiHandler::read_from_CGI_process(int timeout_ms) {
 	return ret;
 };
 
-int CgiHandler::write_to_CGI_process() {
+int CgiHandler::write_to_CGI_process()
+{
 	int wbyte = write(
 					this->get_pipe_write_fd(), 
 					this->file_resource.c_str(), 

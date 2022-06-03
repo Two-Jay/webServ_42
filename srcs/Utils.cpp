@@ -36,14 +36,14 @@ std::vector<std::string> split(std::string input, char delimiter)
     std::stringstream ss(input);
     std::string temp;
  
-    while (getline(ss, temp, delimiter)) {
+    while (getline(ss, temp, delimiter))
         answer.push_back(temp);
-    }
  
     return answer;
 }
 
-std::string get_ip(int client_fd) {
+std::string get_ip(int client_fd)
+{
 	struct sockaddr_in	client_addr;
 	socklen_t			addr_len = sizeof(struct sockaddr_in);
 	char				ip[16];
@@ -55,7 +55,8 @@ std::string get_ip(int client_fd) {
 
 
 // Mon, 16 May 2022 05:47:10 GMT
-std::string get_current_date_GMT(void) {
+std::string get_current_date_GMT(void)
+{
 	time_t rawtime;
 	struct tm *pm;
 	char format[29];

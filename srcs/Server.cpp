@@ -122,7 +122,8 @@ Location* Server::get_cur_location(std::string request_uri) const
 	bool is_in_root = true;
 
 	for (std::vector<Location>::const_iterator it = this->locations.begin(); \
-	it != this->locations.end(); it++) {
+	it != this->locations.end(); it++)
+	{
 		std::string location_path = it->path;
 		if (is_in_location(location_path, request_uri) && (longest < location_path.length()))
 		{

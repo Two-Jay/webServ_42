@@ -12,7 +12,8 @@
 
 #define BUFFER_SIZE 100
 
-class CgiHandler {
+class CgiHandler
+{
 	private:
 		std::map<std::string, std::string> env;
 		FILE *resource_p;
@@ -28,7 +29,8 @@ class CgiHandler {
 		friend std::ostream &operator<<(std::ostream &out, CgiHandler &ch)
 		{
 			out << "cgi_env\n"; 
-			for (std::map<std::string, std::string>::iterator it = ch.env.begin(); it != ch.env.end(); it++) {
+			for (std::map<std::string, std::string>::iterator it = ch.env.begin(); it != ch.env.end(); it++)
+			{
 				out << "first : " << it->first << " || second : " << it->second << '\n';
 			}
 			return out;

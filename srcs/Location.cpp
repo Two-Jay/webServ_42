@@ -40,9 +40,11 @@ MethodType Location::s_to_methodtype(std::string str)
 	return INVALID;
 }
 
-std::string Location::getCgiBinary(std::string &extension) {
+std::string Location::getCgiBinary(std::string &extension)
+{
 	for (std::map<std::string, std::string>::const_iterator it = this->cgi_info.begin();
-	it != this->cgi_info.end(); ++it) {
+	it != this->cgi_info.end(); ++it)
+	{
 		if (it->first == "." + extension)
 			return it->second;
 	}

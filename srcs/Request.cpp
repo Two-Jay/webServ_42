@@ -9,27 +9,32 @@ Request::~Request()
 {
 }
 
-int Request::get_client_fd() {
+int Request::get_client_fd()
+{
 	return client_fd;
 }
 
-std::string Request::get_port() {
+std::string Request::get_port()
+{
 	int i = headers["Host"].find_first_of(":", 0);
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
-static bool check_protocol(std::map<std::string, std::string>::mapped_type& parsed) {
+static bool check_protocol(std::map<std::string, std::string>::mapped_type& parsed)
+{
 	if (parsed != "HTTP/1.1") return false;
 	return true;
 }
 
-static std::string parse_request_body_chunked(std::string& request, int index) {
+static std::string parse_request_body_chunked(std::string& request, int index)
+{
 	std::size_t size = 1;
     std::string ret, size_buf, line = request.substr(index + 2, request.size());
 
 	int i = 0;
 
-	while (true) {
+	while (true)
+	{
 		size_t r = line.find_first_of("\r\n");
 		size_buf = line.substr(i, r);
 		size = StringToHexNumber(size_buf);
@@ -43,11 +48,13 @@ static std::string parse_request_body_chunked(std::string& request, int index) {
 	return ret;
 }
 
-static std::string parse_request_body(std::string& request, int index) {
+static std::string parse_request_body(std::string& request, int index)
+{
 	return request.substr(index + 2, request.size());
 }
 
-static int parse_headers_line(std::map<std::string, std::string>& headers, std::string& request, int index) {
+static int parse_headers_line(std::map<std::string, std::string>& headers, std::string& request, int index)
+{
 	int deli = request.find_first_of(":", index);
 	int end = request.find_first_of("\r\n", deli);
 	headers[request.substr(index, deli - index)] = request.substr(deli + 2, end - deli - 2);
@@ -121,7 +128,8 @@ std::string Request::get_query()
 	return path.substr(i + 1, path.size() - i);
 }
 
-bool Request::is_not_method(const std::string method) {
+bool Request::is_not_method(const std::string method)
+{
 	if(method.empty())
 		return true;
 	for(unsigned long i = 0; i < method.length(); i++)

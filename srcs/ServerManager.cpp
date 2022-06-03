@@ -656,22 +656,25 @@ void ServerManager::handle_cgi_GET_response(Response& res, std::string& cgi_ret,
 
 	res.append_header("Server", client.server->server_name);
 	res.append_header("Connection", "close");
-	while (getline(ss, tmp, '\n')) {
-		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+	while (getline(ss, tmp, '\n'))
+	{
+		if (tmp.length() == 1 && tmp[0] == '\r')
+			break ;
 		size_t mid_deli = tmp.find(":");
 		size_t end_deli = tmp.find("\n");
-		if (tmp[end_deli] == '\r') {
+		if (tmp[end_deli] == '\r')
+		{
 			tmp.erase(tmp.length() - 1, 1);
 			end_deli -= 1;
 		}
-		if ((tmpi = tmp.find(";")) != std::string::npos) {
+		if ((tmpi = tmp.find(";")) != std::string::npos)
 			tmp = tmp.substr(0, tmpi);
-		}
 		std::string key = tmp.substr(0, mid_deli);
 		std::string value = tmp.substr(mid_deli + 1, end_deli);
 		res.append_header(key, value);
 	}
-	while (getline(ss, tmp, '\n')) {
+	while (getline(ss, tmp, '\n'))
+	{
 		body += tmp;
 		body += "\n";
 	}
@@ -688,26 +691,28 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 
 	res.append_header("Server", client.server->server_name);
 	res.append_header("Connection", "close");
-	while (getline(ss, tmp, '\n')) {
-		if (tmp.length() == 1 && tmp[0] == '\r') break ;
+	while (getline(ss, tmp, '\n'))
+	{
+		if (tmp.length() == 1 && tmp[0] == '\r')
+			break ;
 		size_t mid_deli = tmp.find(":");
 		size_t end_deli = tmp.find("\n");
-		if (tmp[end_deli] == '\r') {
+		if (tmp[end_deli] == '\r')
+		{
 			tmp.erase(tmp.length() - 1, 1);
 			end_deli -= 1;
 		}
-		if ((tmpi = tmp.find(";")) != std::string::npos) {
+		if ((tmpi = tmp.find(";")) != std::string::npos)
 			tmp = tmp.substr(0, tmpi);
-		}
 		std::string key = tmp.substr(0, mid_deli);
 		std::string value = tmp.substr(mid_deli + 1, end_deli);
 		res.append_header(key, value);
 	}
-	while (getline(ss, tmp, '\n')) {
+	while (getline(ss, tmp, '\n'))
+	{
 		body += tmp;
 		body += "\n";
 	}
-	
 	
 	std::string full_path = find_path_in_root(request.path, client);
 	size_t index = full_path.find_last_of("/");
