@@ -392,12 +392,13 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	if (request.headers["Transfer-Encoding"] != "chunked" && request.headers.find("Content-Length") == request.headers.end())
+	if (request.headers["Transfer-Encoding"] != "chunked" 
+	&& request.headers.find("Content-Length") == request.headers.end())
 	{
 		send_error_page(411, client);
 		return;
 	}
-
+	
 	std::string full_path = find_path_in_root(request.path, client);
 
 	struct stat buf;
@@ -444,7 +445,11 @@ void ServerManager::post_method(Client &client, Request &request)
 	else
 		write_file_in_path(client, request.body, full_path);
 
-	Response response(status_info[201]);
+	int code = 201;
+	if (request.headers["Content-Length"] == "0")
+		code = 204;
+
+	Response response(status_info[code]);
 	response.append_header("Connection", "close");
 	std::string header = response.make_header();
 	int send_ret = send(client.get_socket(), header.c_str(), header.size(), 0);
@@ -453,7 +458,7 @@ void ServerManager::post_method(Client &client, Request &request)
 	else if (send_ret == 0)
 		send_error_page(400, client, NULL);
 	else
-		std::cout << "> " << full_path << " posted\n";
+		std::cout << "> " << full_path << " posted(" << code << ")\n";
 }
 
 void ServerManager::delete_method(Client &client, std::string path)
