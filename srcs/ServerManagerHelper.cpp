@@ -142,7 +142,14 @@ std::string ServerManager::get_status_cgi(std::string& cgi_ret)
 	std::string status_line;
 	std::stringstream ss(cgi_ret);
 
-	getline(ss, status_line, '\n');
+	std::string line;
+	while (getline(ss, line, '\n'))
+	{
+		if (line.substr(0, 6) == "Status")
+			status_line = line;
+	}
+	if (status_line.empty())
+		return status_line;
 	cgi_ret.erase(0, status_line.length() + 1);
 	status_line.erase(0, 8);
 	status_line.erase(status_line.length() - 1, 1);

@@ -105,8 +105,6 @@ int Request::parsing(std::string request)
 	}
 	if (headers["Host"] == "")
 		return 400;
-	if (headers["Expect"] != "")
-		return 417;
 	return 0;
 }
 
