@@ -410,7 +410,7 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	if (request.headers["Transfer-Encoding"] != "chunked" && rrequest.headers.find("Content-Length") == request.headers.end())
+	if (request.headers["Transfer-Encoding"] != "chunked" && request.headers.find("Content-Length") == request.headers.end())
 	{
 		send_error_page(411, client);
 		return;
@@ -775,7 +775,10 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	{
 		if (req.method == "GET")
 		{
-			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			std::string code = get_status_cgi(cgi_ret);
+			if (code.empty())
+				return 502;
+			Response res(status_info[atoi(code.c_str())]);
 			handle_cgi_GET_response(res, cgi_ret, client);
 			std::string result = res.serialize();
 			int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
@@ -788,7 +791,10 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 		}
 		if (req.method == "POST")
 		{
-			Response res(status_info[atoi(get_status_cgi(cgi_ret).c_str())]);
+			std::string code = get_status_cgi(cgi_ret);
+			if (code.empty())
+				return 502;
+			Response res(status_info[atoi(code.c_str())]);
 			handle_cgi_POST_response(res, cgi_ret, client, req);
 			std::string result = res.serialize();
 			int send_ret = send(client.get_socket(), result.c_str(), result.size(), 0);
