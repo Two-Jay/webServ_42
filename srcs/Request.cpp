@@ -18,12 +18,49 @@ std::string Request::get_port() {
 	return headers["Host"].substr(i + 1, headers["Host"].size() - i - 1);
 }
 
+static bool check_protocol(std::map<std::string, std::string>::mapped_type& parsed) {
+	if (parsed != "HTTP/1.1") return false;
+	return true;
+}
+
+static std::string parse_request_body_chunked(std::string& request, int index) {
+	std::size_t size = 1;
+    std::string ret, size_buf, line = request.substr(index + 2, request.size());
+
+	int i = 0;
+
+	while (true) {
+		size_t r = line.find_first_of("\r\n");
+		size_buf = line.substr(i, r);
+		size = StringToHexNumber(size_buf);
+		i += 2 + size_buf.size();
+		if (size == 0) break ;
+		std::string buf = line.substr(i, i + size - 2);
+		// std::cout << "line : \n" << buf;
+		ret += buf;
+		i += size + 4;
+	}
+	return ret;
+}
+
+static std::string parse_request_body(std::string& request, int index) {
+	return request.substr(index + 2, request.size());
+}
+
+static int parse_headers_line(std::map<std::string, std::string>& headers, std::string& request, int index) {
+	int deli = request.find_first_of(":", index);
+	int end = request.find_first_of("\r\n", deli);
+	headers[request.substr(index, deli - index)] = request.substr(deli + 2, end - deli - 2);
+	return end;
+}
+
 int Request::parsing(std::string request)
 {
 	unsigned long i;
 	int j;
 
 	std::cout << "> Request parsing\n";
+	std::cout << "Request==================================\n" << request << "\n=============================================\n"; 
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	if (method == "PUT")
@@ -34,8 +71,7 @@ int Request::parsing(std::string request)
 		return 400;
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
-	if (headers["HTTP"] != "HTTP/1.1")
-		return 505;
+	if (check_protocol(headers["HTTP"]) == false) return 505;
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())
 	{
@@ -43,12 +79,19 @@ int Request::parsing(std::string request)
 			break;
 		if (request[i] == '\r' && request[i + 1] == '\n')
 		{
-			this->body = request.substr(i + 2, request.size());
+
+			if (strstr(headers["Transfer-Encoding"].c_str(), "chunked") != NULL)
+			{
+				this->body = parse_request_body_chunked(request, i);
+			}
+			else
+			{
+				this->body = parse_request_body(request, i);
+			}
+
 			break;
 		}
-		int deli = request.find_first_of(":", i);
-		int end = request.find_first_of("\r\n", deli);
-		headers[request.substr(i, deli - i)] = request.substr(deli + 2, end - deli - 2);
+		int end = parse_headers_line(this->headers, request, i);
 		if (end + 1 == '\0')
 			break;
 		i = end + 2;

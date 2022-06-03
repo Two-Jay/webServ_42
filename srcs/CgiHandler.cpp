@@ -48,24 +48,28 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->env["CONTENT_LENGTH"] = "-1";
-	if (request.method == "GET")
-	{
-		load_file_resource();
-	}
-	loc.print_location_info();
+	load_file_resource(request);
 }
 
-void CgiHandler::load_file_resource() {
-	this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
-	char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
-	memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
-	int r = 1;
-	while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+void CgiHandler::load_file_resource(Request& req) {
+	if (req.method == "GET")
 	{
-		this->file_resource += buffer;
+		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
+		char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
 		memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
+		int r = 1;
+		while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+		{
+			this->file_resource += buffer;
+			memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
+		}
+		this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 	}
-	this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
+	if (req.method == "POST")
+	{
+		this->file_resource = req.body;
+		this->env["CONTENT_LENGTH"] = NumberToString(req.body.size());
+	}
 }
 
 std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
@@ -100,15 +104,15 @@ char** CgiHandler::set_env()
 	return envp;
 }
 
-int CgiHandler::excute_CGI(Request &Request, Location &loc)
+int CgiHandler::excute_CGI(Request &req, Location &loc)
 {
 	int read_fd[2];
 	int write_fd[2];
 	int pid;
 	int ret1 = pipe(read_fd);
 
-	if (ret1 < 0 || pipe(write_fd) < 0 || !resource_p) return -1;
-	signal(SIGALRM,(void (*)(int))set_signal_kill_child_process);
+	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && !resource_p)) return -1;
+	signal(SIGALRM, set_signal_kill_child_process);
 	pid = fork();
 	if (pid < 0) return -1;
 	else if (pid == 0)
@@ -118,7 +122,7 @@ int CgiHandler::excute_CGI(Request &Request, Location &loc)
 		close(write_fd[1]);
 		close(read_fd[0]);
 		char **env = set_env();
-		std::string extension = Request.get_path().substr(Request.get_path().find(".") + 1);
+		std::string extension = req.get_path().substr(req.get_path().find(".") + 1);
 		char *av[3];
 		av[0] = const_cast<char*>(loc.getCgiBinary(extension).c_str());
 		av[1] = const_cast<char*>(loc.root.c_str());

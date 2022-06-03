@@ -41,7 +41,7 @@ class CgiHandler {
 		int get_pipe_read_fd(void);
 		void set_pipe_write_fd(int fd);
 		void set_pipe_read_fd(int fd);
-		void load_file_resource();
+		void load_file_resource(Request& req);
 		std::string read_from_CGI_process(int timeout_ms);
 		int write_to_CGI_process();
 };

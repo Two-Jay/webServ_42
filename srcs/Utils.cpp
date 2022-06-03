@@ -67,3 +67,12 @@ std::string get_current_date_GMT(void) {
 	ret = format;
 	return ret;
 }
+
+size_t StringToHexNumber(std::string input)
+{
+	std::stringstream convert;
+	size_t ret = 0;
+	convert << std::hex << input;
+	convert >> ret;
+	return ret;
+}

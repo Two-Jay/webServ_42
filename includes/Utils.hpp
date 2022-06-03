@@ -7,6 +7,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <map>
+#include <sstream>
 #include <ctime>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -17,6 +18,7 @@ std::string dir_listing();
 std::vector<std::string> split(std::string input, char delimiter);
 std::string get_ip(int client_fd);
 std::string get_current_date_GMT(void);
+size_t StringToHexNumber(std::string input);
 
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)
@@ -49,8 +51,6 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2> &op)
 	}
 	return out;
 }
-
-#include <sstream>
 
 template <typename T>
 std::string NumberToString ( T Number )
