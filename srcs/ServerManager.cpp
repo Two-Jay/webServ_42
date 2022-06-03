@@ -424,17 +424,17 @@ void ServerManager::post_method(Client &client, Request &request)
 	{
 		if (request.headers.find("Content-Type") != request.headers.end())
 		{
-			size_t begin = request.headers["Content-Type"].find("boundary=") + 9;
+			size_t begin = request.headers["Content-Type"].find("boundary=");
 			if (begin != std::string::npos)
 			{
-				std::string boundary = request.headers["Content-Type"].substr(begin);
+				std::string boundary = request.headers["Content-Type"].substr(begin + 9);
 				begin = 0;
 				size_t end = 0;
 				std::string name;
 				while (true)
 				{
 					begin = request.body.find("name=", begin) + 6;
-					end = request.body.find_first_of(";", begin) - 1;
+					end = request.body.find_first_of("\"", begin);
 					if (begin == std::string::npos || end == std::string::npos)
 						break;
 					name = request.body.substr(begin, end - begin);
@@ -442,7 +442,7 @@ void ServerManager::post_method(Client &client, Request &request)
 					end = request.body.find(boundary, begin);
 					if (begin == std::string::npos || end == std::string::npos)
 						break;
-					write_file_in_path(client, request.body.substr(begin, end - begin - 3), full_path + "/" + name);
+					write_file_in_path(client, request.body.substr(begin, end - begin - 4), full_path + "/" + name);
 					if (request.body[end + boundary.size()] == '-')
 						break;
 				}
