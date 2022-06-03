@@ -178,35 +178,6 @@ void ServerManager::drop_client(Client client)
 ** Request Treatment methods
 */
 
-bool static is_request_done(char *request)
-{
-	char *body = strstr(request, "\r\n\r\n");
-	if (!body)
-		return false;
-	if (strnstr(request, "chunked", strlen(request) - strlen(body)))
-	{
-		body += 4;
-		if (strstr(body, "\r\n\r\n"))
-			return true;
-		return false;
-	}
-	else if (strnstr(request, "Content-Length", strlen(request) - strlen(body)))
-	{
-		body += 4;
-		if (strstr(body, "\r\n\r\n"))
-			return true;
-		return false;
-	}
-	else if (strnstr(request, "boundary=", strlen(request) - strlen(body)))
-	{
-		body += 4;
-		if (strstr(body, "\r\n\r\n"))
-			return true;
-		return false;
-	}
-	return true;
-}
-
 void ServerManager::treat_request()
 {
 	for (unsigned long i = 0; i < clients.size() ; i++)
@@ -447,18 +418,6 @@ void ServerManager::post_method(Client &client, Request &request)
 	}
 
 	std::string full_path = find_path_in_root(request.path, client);
-<<<<<<< HEAD
-	size_t index = full_path.find_last_of("/");
-	if (index == std::string::npos)
-	{
-		send_error_page(500, client);
-		return;
-	}
-
-	std::string file_name = full_path.substr(index + 1);
-	std::string folder_path = full_path.substr(0, index);
-=======
->>>>>>> addad667a89c937761aeabfb6e663b8e9535b481
 
 	struct stat buf;
 	lstat(full_path.c_str(), &buf);
@@ -501,13 +460,8 @@ void ServerManager::post_method(Client &client, Request &request)
 			return;
 		}
 	}
-<<<<<<< HEAD
-	fwrite(request.body.c_str(), request.body.size(), 1, fp);
-	fclose(fp);
-=======
 	else
 		write_file_in_path(client, request.body, full_path);
->>>>>>> addad667a89c937761aeabfb6e663b8e9535b481
 
 	Response response(status_info[201]);
 	response.append_header("Connection", "close");
