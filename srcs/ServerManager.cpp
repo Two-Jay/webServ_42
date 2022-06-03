@@ -482,7 +482,7 @@ void ServerManager::delete_method(Client &client, std::string path)
 	FILE *fp = fopen(full_path.c_str(), "r");
 	if (!fp)
 	{
-		send_error_page(204, client);
+		send_error_page(404, client);
 		return;
 	}
 	fclose(fp);
