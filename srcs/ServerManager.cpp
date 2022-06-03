@@ -89,10 +89,7 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	int ret = 0;
 
 	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
-	{
-		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
 		exit(1);
-	}
 	else if (ret == 0)
 		std::cout << "[ERROR] select() timeout.\n";
 	this->reads = *reads;
