@@ -41,7 +41,6 @@ static std::string parse_request_body_chunked(std::string& request, int index)
 		i += 2 + size_buf.size();
 		if (size == 0) break ;
 		std::string buf = line.substr(i, i + size - 2);
-		// std::cout << "line : \n" << buf;
 		ret += buf;
 		i += size + 4;
 	}
@@ -67,7 +66,6 @@ int Request::parsing(std::string request)
 	int j;
 
 	std::cout << "> Request parsing\n";
-	std::cout << "Request==================================\n" << request << "\n=============================================\n"; 
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
 	if (method == "PUT")

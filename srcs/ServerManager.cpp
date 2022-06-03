@@ -36,7 +36,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 			int status_code = it->first;
 			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
 			{
-				fprintf(stderr, "[ERROR] invalid status code on error_page\n");
+				std::cout << "[ERROR] invalid status code on error_page\n";
 				exit(1);
 			}
 		}
@@ -108,7 +108,7 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 		exit(1);
 	}
 	else if (ret == 0)
-		fprintf(stderr, "[ERROR] select() timeout. (%d)\n", errno);
+		std::cout << "[ERROR] select() timeout.\n";
 	this->reads = *reads;
 	this->writes = *writes;
 }
@@ -147,7 +147,7 @@ void ServerManager::accept_sockets()
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
 			{
-				fprintf(stderr, "[ERROR] accept() failed. (%d)\n", errno);
+				std::cout << "[ERROR] accept() failed.\n";
 				exit(1);
 			}
 			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
@@ -320,7 +320,6 @@ void ServerManager::get_method(Client &client, std::string path)
 		return;
 	}
 
-	// char *dir_list;
 	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
 	lstat(full_path.c_str(), &buf);
@@ -333,39 +332,39 @@ void ServerManager::get_method(Client &client, std::string path)
 		if (S_ISDIR(buf.st_mode))
 		{
 			std::cout << "> Current path is directory\n";
-			if (client.server->autoindex)
-			{
-				send_autoindex_page(client, path);
-				fclose(fp);
-				return;
-			}
+			bool flag = false;
+			Location *loc = client.server->get_cur_location(path);
+			std::vector<std::string> indexes;
+			if (loc)
+				indexes = loc->index;
 			else
+				indexes = client.server->index;
+			if (full_path.back() != '/')
+				full_path.append("/");
+			for (unsigned long i = 0; i < indexes.size(); i++)
 			{
-				bool flag = false;
-				Location *loc = client.server->get_cur_location(path);
-				std::vector<std::string> indexes;
-				if (loc)
-					indexes = loc->index;
-				else
-					indexes = client.server->index;
-				if (full_path.back() != '/')
-					full_path.append("/");
-				for (unsigned long i = 0; i < indexes.size(); i++)
+				FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
+				if (fp)
 				{
-					FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
-					if (fp)
-					{
-						fclose(fp);
-						full_path.append(indexes[i]);
-						flag = true;
-						break;
-					}
+					fclose(fp);
+					full_path.append(indexes[i]);
+					flag = true;
+					break;
 				}
-				if (!flag)
+			}
+			if (!flag)
+			{
+				if (client.server->autoindex)
 				{
-					send_error_page(404, client);
+					send_autoindex_page(client, path);
 					fclose(fp);
 					return;
+				}
+				else
+				{
+						send_error_page(404, client);
+						fclose(fp);
+						return;
 				}
 			}
 		}
@@ -744,7 +743,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		fprintf(stderr, "[ERROR] writing input to cgi failed. (%d)%s\n", errno, strerror(errno));
+		std::cout << "[ERROR] writing input to cgi failed.\n";
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
@@ -758,13 +757,12 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
-		fprintf(stderr, "[ERROR] reading from cgi failed. (%d)%s\n", errno, strerror(errno));
+		std::cout << "[ERROR] reading from cgi failed.\n";
 		close(ch.get_pipe_read_fd());
 		close(ch.get_pipe_write_fd());
 		return 500;
 	}
 	std::string cgi_ret = ch.read_from_CGI_process(10);
-	std::cout << cgi_ret << std::endl;
 	if (cgi_ret.empty())
 		return 500;
 	close(ch.get_pipe_read_fd());

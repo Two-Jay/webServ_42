@@ -18,7 +18,7 @@ ConfigParser::ConfigParser(const char* filename)
 	}
 	else
 	{
-		fprintf(stderr, "[ERROR] file open failed. (%d)%s\n", errno, strerror(errno));
+		std::cout << "[ERROR] file open failed.\n";
 		exit(1);
 	}
 }
