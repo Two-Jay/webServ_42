@@ -13,18 +13,14 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(303, "303 See Other"));
 	status_info.insert(std::make_pair(307, "307 Temporary Redirect"));
 	status_info.insert(std::make_pair(400, "400 Bad Request"));
-	status_info.insert(std::make_pair(401, "401 Unauthorized"));
-	status_info.insert(std::make_pair(403, "403 Forbidden"));
 	status_info.insert(std::make_pair(404, "404 Not found"));
 	status_info.insert(std::make_pair(405, "405 Method Not Allowed"));
 	status_info.insert(std::make_pair(408, "408 Request Timeout"));
 	status_info.insert(std::make_pair(411, "411 Length Required"));
 	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
 	status_info.insert(std::make_pair(414, "414 URI Too Long"));
-	status_info.insert(std::make_pair(429, "429 Too Many Request"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
-	status_info.insert(std::make_pair(504, "504 Gateway Timeout"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
 
 	max_fd = -1;
@@ -95,16 +91,6 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 	{
 		fprintf(stderr, "[ERROR] select() failed. (%d)\n", errno);
-		if (errno == EINVAL)
-		{
-			for (unsigned long i = 0; i < clients.size(); i++)
-				send_error_page(429, clients[i], NULL);
-		}
-		else 
-		{
-			for (unsigned long i = 0; i < clients.size(); i++)
-				send_error_page(500, clients[i], NULL);
-		}
 		exit(1);
 	}
 	else if (ret == 0)
