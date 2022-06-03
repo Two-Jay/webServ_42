@@ -411,7 +411,7 @@ void ServerManager::post_method(Client &client, Request &request)
 {
 	std::cout << "POST method\n";
 
-	if (request.headers.find("Content-Length") == request.headers.end())
+	if (request.headers["Transfer-Encoding"] != "chunked" && rrequest.headers.find("Content-Length") == request.headers.end())
 	{
 		send_error_page(411, client);
 		return;
