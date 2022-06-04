@@ -13,11 +13,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define NC "\e[0m"
 #define RED "\e[0;31m"
 #define GRN "\e[0;32m"
 #define YLW "\e[0;33m"
+#define BLU "\e[0;34m"
 #define CYN "\e[0;36m"
-#define WHT "\e[0;36m"
 
 int replace(std::string &original, std::string word1, std::string word2);
 std::string dir_listing();

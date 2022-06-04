@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 
 	std::cout << GRN "=================================================\n";
 	std::cout << "                 Webserv Start!                  \n";
-	std::cout << "=================================================\n" WHT;
+	std::cout << "=================================================\n" NC;
 
 	std::string config = (argc == 1) ? "./config/default.config" : argv[1];
 	ConfigParser configParser(config.c_str());
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	
 	std::cout << GRN "=================================================\n";
 	std::cout << "                Webserv Finished                 \n";
-	std::cout << "=================================================\n" WHT;
+	std::cout << "=================================================\n" NC;
 	delete servers;
 	return 0;
 }
