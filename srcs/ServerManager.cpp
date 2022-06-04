@@ -32,7 +32,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 			int status_code = it->first;
 			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
 			{
-				std::cout << RED "[ERROR] invalid status code on error_page\n" WHT;
+				std::cout << RED "[ERROR] invalid status code on error_page\n" NC;
 				exit(1);
 			}
 		}
@@ -91,7 +91,7 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 		exit(1);
 	else if (ret == 0)
-		std::cout << RED "[ERROR] select() timeout.\n" WHT;
+		std::cout << RED "[ERROR] select() timeout.\n" NC;
 	this->reads = *reads;
 	this->writes = *writes;
 }
@@ -130,7 +130,7 @@ void ServerManager::accept_sockets()
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
 			{
-				std::cout << RED "[ERROR] accept() failed.\n" WHT;
+				std::cout << RED "[ERROR] accept() failed.\n" NC;
 				exit(1);
 			}
 			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
@@ -152,7 +152,7 @@ void ServerManager::drop_client(Client client)
 			return;
 		}
 	}
-	std::cout << RED "[ERROR] drop_client not found.\n" WHT;
+	std::cout << RED "[ERROR] drop_client not found.\n" NC;
 	exit(1);
 }
 
@@ -189,7 +189,7 @@ void ServerManager::treat_request()
 			if (r < 0)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				std::cout << RED "[ERROR] recv() failed.\n" WHT;
+				std::cout << RED "[ERROR] recv() failed.\n" NC;
 				send_error_page(500, clients[i]);
 				drop_client(clients[i]);
 				i--;
@@ -197,7 +197,7 @@ void ServerManager::treat_request()
 			else if (r == 0)
 			{
 				std::cout << "> The connection has been closed. (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				std::cout << RED "[ERROR] recv() failed.\n" WHT;
+				std::cout << RED "[ERROR] recv() failed.\n" NC;
 				send_error_page(400, clients[i]);
 				drop_client(clients[i]);
 				i--;
@@ -215,20 +215,20 @@ void ServerManager::treat_request()
 				}
 
 				std::string port = req.headers["Host"].substr(req.headers["Host"].find(':') + 1);
-				std::cout << "> " << req.headers["Host"];
+				std::cout << CYN "> " << req.headers["Host"];
 				if (servers[req.headers["Host"]])
 				{
-					std::cout << " -> found in server name\n";
+					std::cout << " -> found in server name\n" NC;
 					clients[i].server = servers[req.headers["Host"]];
 				}
 				else if (default_servers[port])
 				{
-					std::cout << " -> default server\n";
+					std::cout << " -> default server\n" NC;
 					clients[i].server = default_servers[port];
 				}
 				else
 				{
-					std::cout << " -> not found\n";
+					std::cout << " -> not found\n" NC;
 					send_error_page(400, clients[i]);
 					drop_client(clients[i]);
 					i--;
@@ -297,7 +297,7 @@ void ServerManager::treat_request()
 
 void ServerManager::get_method(Client &client, std::string path)
 {
-	std::cout << "GET method\n";
+	std::cout << YLW "GET method\n" NC;
 	if (path.length() >= MAX_URI_SIZE)
 	{
 		send_error_page(414, client);
@@ -403,7 +403,7 @@ void ServerManager::get_method(Client &client, std::string path)
 
 void ServerManager::post_method(Client &client, Request &request)
 {
-	std::cout << "POST method\n";
+	std::cout << YLW "POST method\n" NC;
 
 	if (request.headers["Transfer-Encoding"] != "chunked" 
 	&& request.headers.find("Content-Length") == request.headers.end())
@@ -476,7 +476,7 @@ void ServerManager::post_method(Client &client, Request &request)
 
 void ServerManager::delete_method(Client &client, std::string path)
 {
-	std::cout << "DELETE method\n";
+	std::cout << YLW "DELETE method\n" NC;
 	std::string full_path = find_path_in_root(path, client);
 	std::cout << full_path << "\n";
 
@@ -744,7 +744,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		std::cout << RED "[ERROR] writing input to cgi failed.\n" WHT;
+		std::cout << RED "[ERROR] writing input to cgi failed.\n" NC;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);

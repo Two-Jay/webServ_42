@@ -12,7 +12,7 @@ Location::~Location()
 
 void Location::print_location_info()
 {
-	std::cout << "----------------- Location Info -----------------\n";
+	std::cout << BLU "----------------- Location Info -----------------\n";
 	std::cout << "> path: " << path << "\n";
 	std::cout << "> root: " << root << "\n";
 	std::cout << "> index: " << index << "\n";
@@ -21,6 +21,7 @@ void Location::print_location_info()
 	{
 		std::cout << "> cgi_info: " << (*i).first << ", " << (*i).second << "\n";
 	}
+	std::cout << NC;
 }
 
 MethodType Location::s_to_methodtype(std::string str)

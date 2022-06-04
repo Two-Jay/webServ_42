@@ -2,13 +2,13 @@
 
 void ServerManager::print_servers_info()
 {
-	std::cout << "=================================================\n";
+	std::cout << BLU "=================================================\n";
 	std::cout << "            Total Server Informations            \n";
 	std::cout << "=================================================\n";
 	std::map<std::string, Server*>::iterator it;
 	for (it = default_servers.begin(); it != default_servers.end(); it++)
 		(*it).second->print_server_info();
-	std::cout << "=================================================\n";
+	std::cout << BLU "=================================================\n" NC;
 }
 
 bool	ServerManager::is_allowed_method(std::vector<MethodType> allow_methods, std::string method) 
@@ -84,8 +84,6 @@ bool	ServerManager::is_cgi(Request *request, Location *loc)
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		std::cout << "get_path: " << request->get_path() << "\n";
-		std::cout << "it->first: " << it->first << "\n"; 
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}

@@ -39,9 +39,9 @@ void Client::set_socket(int value)
 
 	fcntl(socket, F_SETFL, O_NONBLOCK);
 	if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (void*)&server->recv_timeout, sizeof(struct timeval)) < 0)
-		std::cout << RED "[ERROR] setsockopt: recv_timeout set failed\n" WHT;
+		std::cout << RED "[ERROR] setsockopt: recv_timeout set failed\n" NC;
 	if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (void*)&server->send_timeout, sizeof(struct timeval)) < 0)
-		std::cout << RED "[ERROR] setsockopt: send_timeout set failed\n" WHT;
+		std::cout << RED "[ERROR] setsockopt: send_timeout set failed\n" NC;
 }
 
 void Client::set_received_size(int size)
