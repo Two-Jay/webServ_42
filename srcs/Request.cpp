@@ -68,8 +68,6 @@ int Request::parsing(std::string request)
 	std::cout << "> Request parsing\n";
 	i = request.find_first_of(" ", 0);
 	method = request.substr(0, i);
-	if (method == "PUT")
-		return 200;
 	if (is_not_method(method))
 		return 400;
 	if ((unsigned long)(j = request.find_first_of(" ", i + 1)) == std::string::npos)
