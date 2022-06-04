@@ -13,12 +13,12 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(303, "303 See Other"));
 	status_info.insert(std::make_pair(307, "307 Temporary Redirect"));
 	status_info.insert(std::make_pair(400, "400 Bad Request"));
-	status_info.insert(std::make_pair(404, "404 Not found"));
+	status_info.insert(std::make_pair(404, "404 Not Found"));
 	status_info.insert(std::make_pair(405, "405 Method Not Allowed"));
 	status_info.insert(std::make_pair(408, "408 Request Timeout"));
 	status_info.insert(std::make_pair(411, "411 Length Required"));
 	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
-	status_info.insert(std::make_pair(414, "414 URI Too Long"));
+	status_info.insert(std::make_pair(414, "414 Request-URI Too Long"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
