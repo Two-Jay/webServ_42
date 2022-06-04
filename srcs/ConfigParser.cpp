@@ -18,7 +18,7 @@ ConfigParser::ConfigParser(const char* filename)
 	}
 	else
 	{
-		std::cout << "[ERROR] file open failed.\n";
+		std::cout << RED "[ERROR] file open failed.\n" WHT;
 		exit(1);
 	}
 }
@@ -281,6 +281,6 @@ int ConfigParser::check_line_syntax(std::string line)
 
 int ConfigParser::print_parse_error()
 {
-	fprintf(stderr, "[ERROR] config parsing failed.\n");
+	std::cout << RED "[ERROR] config parsing failed.\n" WHT;
 	return 1;
 }
