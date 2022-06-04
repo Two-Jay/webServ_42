@@ -84,8 +84,6 @@ bool	ServerManager::is_cgi(Request *request, Location *loc)
 	for (std::map<std::string, std::string>::iterator it = loc->cgi_info.begin();
 	it != loc->cgi_info.end(); it++)
 	{
-		std::cout << "get_path: " << request->get_path() << "\n";
-		std::cout << "it->first: " << it->first << "\n"; 
 		if (request->get_path().find(it->first) != std::string::npos)
 			return true;
 	}
