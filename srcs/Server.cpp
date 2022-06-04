@@ -36,7 +36,7 @@ void Server::create_socket()
 		fcntl(new_socket, F_SETFL, O_NONBLOCK);
 		if (new_socket < 0)
 		{
-			std::cout << "[Esocket() failed.\n";
+			std::cout << RED "[ERROR] socket() failed.\n" WHT;
 			exit(1);
 		}
 		std::cout << "> Binding socket to local address...\n";
@@ -45,7 +45,7 @@ void Server::create_socket()
 			fprintf(stderr, "setsockopt: setsocketopt in server_socket failed\n");
 		if (bind(new_socket, info->ai_addr, info->ai_addrlen))
 		{
-			std::cout << "[ERROR] bind() failed.\n";
+			std::cout << RED "[ERROR] bind() failed.\n" WHT;
 			perror("bind");
 			exit(1);
 		}
@@ -53,7 +53,7 @@ void Server::create_socket()
 		std::cout << "> Listening...\n";
 		if (listen(new_socket, 10) < 0)
 		{
-			std::cout << "[ERROR] listen() failed.\n";
+			std::cout << RED "[ERROR] listen() failed.\n" WHT;
 			exit(1);
 		}
 		this->listen_socket = new_socket;
@@ -61,7 +61,7 @@ void Server::create_socket()
 	}
 	else
 	{
-		std::cout << "[ERROR] getaddrinfo() failed.\n";
+		std::cout << RED "[ERROR] getaddrinfo() failed.\n" WHT;
 		exit(1);
 	}
 }

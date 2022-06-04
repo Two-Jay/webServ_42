@@ -13,12 +13,12 @@ ServerManager::ServerManager(std::vector<Server> servers)
 	status_info.insert(std::make_pair(303, "303 See Other"));
 	status_info.insert(std::make_pair(307, "307 Temporary Redirect"));
 	status_info.insert(std::make_pair(400, "400 Bad Request"));
-	status_info.insert(std::make_pair(404, "404 Not found"));
+	status_info.insert(std::make_pair(404, "404 Not Found"));
 	status_info.insert(std::make_pair(405, "405 Method Not Allowed"));
 	status_info.insert(std::make_pair(408, "408 Request Timeout"));
 	status_info.insert(std::make_pair(411, "411 Length Required"));
 	status_info.insert(std::make_pair(413, "413 Request Entity Too Large"));
-	status_info.insert(std::make_pair(414, "414 URI Too Long"));
+	status_info.insert(std::make_pair(414, "414 Request-URI Too Long"));
 	status_info.insert(std::make_pair(500, "500 Internal Server Error"));
 	status_info.insert(std::make_pair(502, "502 Bad Gateway"));
 	status_info.insert(std::make_pair(505, "505 HTTP Version Not Supported"));
@@ -32,7 +32,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 			int status_code = it->first;
 			if (status_code < 400 || (status_code > 431 && status_code < 500) || status_code > 511)
 			{
-				std::cout << "[ERROR] invalid status code on error_page\n";
+				std::cout << RED "[ERROR] invalid status code on error_page\n" WHT;
 				exit(1);
 			}
 		}
@@ -44,7 +44,7 @@ ServerManager::ServerManager(std::vector<Server> servers)
 		if (!this->servers[_servers[i].server_name + ":" + _servers[i].port])
 			this->servers[_servers[i].server_name + ":" + _servers[i].port] = &_servers[i];
 		else
-			std::cout << "! ignore already exist server block !\n";
+			std::cout << YLW "! ignore already exist server block !\n";
 	}
 }
 
@@ -91,7 +91,7 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 		exit(1);
 	else if (ret == 0)
-		std::cout << "[ERROR] select() timeout.\n";
+		std::cout << RED "[ERROR] select() timeout.\n" WHT;
 	this->reads = *reads;
 	this->writes = *writes;
 }
@@ -130,7 +130,7 @@ void ServerManager::accept_sockets()
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
 			{
-				std::cout << "[ERROR] accept() failed.\n";
+				std::cout << RED "[ERROR] accept() failed.\n" WHT;
 				exit(1);
 			}
 			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
@@ -152,7 +152,7 @@ void ServerManager::drop_client(Client client)
 			return;
 		}
 	}
-	fprintf(stderr, "[ERROR] drop_client not found.\n");
+	std::cout << RED "[ERROR] drop_client not found.\n" WHT;
 	exit(1);
 }
 
@@ -189,7 +189,7 @@ void ServerManager::treat_request()
 			if (r < 0)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				fprintf(stderr, "[ERROR] recv() failed.\n");
+				std::cout << RED "[ERROR] recv() failed.\n" WHT;
 				send_error_page(500, clients[i]);
 				drop_client(clients[i]);
 				i--;
@@ -197,7 +197,7 @@ void ServerManager::treat_request()
 			else if (r == 0)
 			{
 				std::cout << "> The connection has been closed. (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				fprintf(stderr, "[ERROR] recv() failed.\n");
+				std::cout << RED "[ERROR] recv() failed.\n" WHT;
 				send_error_page(400, clients[i]);
 				drop_client(clients[i]);
 				i--;
@@ -288,6 +288,7 @@ void ServerManager::treat_request()
 			}
 		}
 	}
+	usleep(500);
 }
 
 /*
@@ -364,20 +365,32 @@ void ServerManager::get_method(Client &client, std::string path)
 		response.append_header("Content-Type", type);
 
 		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
+		int send_ret_1 = send(client.get_socket(), header.c_str(), header.size(), 0);
+		if (send_ret_1 < 0)
+		{
+			send_error_page(500, client, NULL);
+			fclose(fp);
+			return;
+		}
+		else if (send_ret_1 == 0)
+		{
+			send_error_page(400, client, NULL);
+			fclose(fp);
+			return;
+		}
 
 		char buffer[BSIZE];
 		int r = fread(buffer, 1, BSIZE, fp);
-		int send_ret;
+		int send_ret_2;
 		while (r)
 		{
-			send_ret = send(client.get_socket(), buffer, r, 0);
-			if (send_ret < 0)
+			send_ret_2 = send(client.get_socket(), buffer, r, 0);
+			if (send_ret_2 < 0)
 			{
 				send_error_page(500, client, NULL);
 				break;
 			}
-			else if (send_ret == 0)
+			else if (send_ret_2 == 0)
 			{
 				send_error_page(400, client, NULL);
 				break;
@@ -731,7 +744,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		std::cout << "[ERROR] writing input to cgi failed.\n";
+		std::cout << RED "[ERROR] writing input to cgi failed.\n" WHT;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
@@ -745,7 +758,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
-		std::cout << "[ERROR] reading from cgi failed.\n";
+		std::cout << RED "[ERROR] reading from cgi failed.\n" WHT;
 		close(ch.get_pipe_read_fd());
 		close(ch.get_pipe_write_fd());
 		return 500;
