@@ -288,6 +288,7 @@ void ServerManager::treat_request()
 			}
 		}
 	}
+	usleep(500);
 }
 
 /*
