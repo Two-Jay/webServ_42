@@ -54,6 +54,7 @@ bool	ServerManager::is_request_done(char *request)
 		char *start = strnstr(request, "Content-Length: ", strlen(request) - strlen(body)) + 16;
 		char *end = strstr(start, "\r\n");
 		char *len = strndup(start, end - start);
+		free(len);
 		int len_i = atoi(len);
 		if ((size_t)len_i <= strlen(body))
 			return true;
