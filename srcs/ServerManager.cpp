@@ -364,20 +364,32 @@ void ServerManager::get_method(Client &client, std::string path)
 		response.append_header("Content-Type", type);
 
 		std::string header = response.make_header();
-		send(client.get_socket(), header.c_str(), header.size(), 0);
+		int send_ret_1 = send(client.get_socket(), header.c_str(), header.size(), 0);
+		if (send_ret_1 < 0)
+		{
+			send_error_page(500, client, NULL);
+			fclose(fp);
+			return;
+		}
+		else if (send_ret_1 == 0)
+		{
+			send_error_page(400, client, NULL);
+			fclose(fp);
+			return;
+		}
 
 		char buffer[BSIZE];
 		int r = fread(buffer, 1, BSIZE, fp);
-		int send_ret;
+		int send_ret_2;
 		while (r)
 		{
-			send_ret = send(client.get_socket(), buffer, r, 0);
-			if (send_ret < 0)
+			send_ret_2 = send(client.get_socket(), buffer, r, 0);
+			if (send_ret_2 < 0)
 			{
 				send_error_page(500, client, NULL);
 				break;
 			}
-			else if (send_ret == 0)
+			else if (send_ret_2 == 0)
 			{
 				send_error_page(400, client, NULL);
 				break;
