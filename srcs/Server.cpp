@@ -36,7 +36,7 @@ void Server::create_socket()
 		fcntl(new_socket, F_SETFL, O_NONBLOCK);
 		if (new_socket < 0)
 		{
-			std::cout << "[Esocket() failed.\n";
+			std::cout << RED "[ERROR] socket() failed.\n" NC;
 			exit(1);
 		}
 		std::cout << "> Binding socket to local address...\n";
@@ -45,7 +45,7 @@ void Server::create_socket()
 			fprintf(stderr, "setsockopt: setsocketopt in server_socket failed\n");
 		if (bind(new_socket, info->ai_addr, info->ai_addrlen))
 		{
-			std::cout << "[ERROR] bind() failed.\n";
+			std::cout << RED "[ERROR] bind() failed.\n" NC;
 			perror("bind");
 			exit(1);
 		}
@@ -53,22 +53,22 @@ void Server::create_socket()
 		std::cout << "> Listening...\n";
 		if (listen(new_socket, 10) < 0)
 		{
-			std::cout << "[ERROR] listen() failed.\n";
+			std::cout << RED "[ERROR] listen() failed.\n" NC;
 			exit(1);
 		}
 		this->listen_socket = new_socket;
-		std::cout << "> Socket successfully added!\n";
+		std::cout << YLW "! Socket successfully added !\n" NC;
 	}
 	else
 	{
-		std::cout << "[ERROR] getaddrinfo() failed.\n";
+		std::cout << RED "[ERROR] getaddrinfo() failed.\n" NC;
 		exit(1);
 	}
 }
 
 void Server::print_server_info()
 {
-	std::cout << "------------------ Server Info ------------------\n";
+	std::cout << BLU "------------------ Server Info ------------------\n";
 	std::cout << "> server_name: " << server_name << "\n";
 	std::cout << "> host: " << host << "\n";
 	std::cout << "> port: " << port << "\n";
@@ -92,7 +92,7 @@ void Server::print_server_info()
 		std::cout << "> redirect_status: " << redirect_status << "\n";
 		std::cout << "> redirect_url: " << redirect_url << "\n";
 	}
-	std::cout << "-------------------------------------------------\n";
+	std::cout << BLU "-------------------------------------------------\n" NC;
 }
 
 MethodType Server::s_to_methodtype(std::string str)

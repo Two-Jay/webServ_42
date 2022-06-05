@@ -201,7 +201,7 @@ int CgiHandler::write_to_CGI_process()
 				);
 	if (wbyte == -1)
 	{
-		std::cout << "[ERROR] cgihandler : write failed.\n";
+		std::cout << RED "[ERROR] cgihandler : write failed.\n" NC;
 		alarm(30);
 		waitpid(-1, NULL, 0);
 		return -1;
