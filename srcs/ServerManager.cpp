@@ -744,7 +744,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		std::cerr << RED "> [ERROR] writing input to cgi failed.\n";
+		std::cerr << RED "> [ERROR] writing input to cgi failed.\n" NC;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
@@ -758,7 +758,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
-		std::cerr << RED "> [ERROR] reading from cgi failed.\n";
+		std::cerr << RED "> [ERROR] reading from cgi failed.\n" NC;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
