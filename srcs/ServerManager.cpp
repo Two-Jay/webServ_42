@@ -445,13 +445,13 @@ void ServerManager::post_method(Client &client, Request &request)
 			}
 			else
 			{
-				send_error_page(500, client);
+				send_error_page(400, client);
 				return;
 			}
 		}
 		else
 		{
-			send_error_page(500, client);
+			send_error_page(400, client);
 			return;
 		}
 	}
