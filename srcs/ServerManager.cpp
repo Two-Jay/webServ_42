@@ -361,7 +361,7 @@ void ServerManager::get_method(Client &client, std::string path)
 
 		Response response(status_info[200]);
 		response.append_header("Connection", "close");
-		response.append_header("Content-Length", std::to_string(length));
+		response.append_header("Content-Length", NumberToString(length));
 		response.append_header("Content-Type", type);
 
 		std::string header = response.make_header();
@@ -538,7 +538,7 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 
 	Response response(status_info[200]);
 	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(result.length()));
+	response.append_header("Content-Length", NumberToString(result.length()));
 	response.append_header("Content-Type", "text/html");
 	std::string header = response.make_header();
 	
@@ -572,7 +572,7 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 	response.append_header("Server", client.server->server_name);
 	response.append_header("Date", get_current_date_GMT());
 	response.append_header("Content-Type", "text/html");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Length", NumberToString(response.get_body_size()));
 	// response.append_header("Connection", "keep-alive");
 	response.append_header("Location", client.server->redirect_url);
 
@@ -614,7 +614,7 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 		response.make_status_body();
 	
 	response.append_header("Connection", "close");
-	response.append_header("Content-Length", std::to_string(response.get_body_size()));
+	response.append_header("Content-Length", NumberToString(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
 	if (code == 405)
 	{
@@ -678,7 +678,7 @@ void ServerManager::handle_cgi_GET_response(Response& res, std::string& cgi_ret,
 		body += "\n";
 	}
 	res.set_body(body);
-	res.append_header("Content-Length", std::to_string(res.get_body_size()));
+	res.append_header("Content-Length", NumberToString(res.get_body_size()));
 }
 
 void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret, Client &client, Request& request)
@@ -735,7 +735,7 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 	fwrite(body.c_str(), body.size(), 1, fp);
 	fclose(fp);
 
-	res.append_header("Content-Length", std::to_string(res.get_body_size()));
+	res.append_header("Content-Length", NumberToString(res.get_body_size()));
 }
 
 int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& req)
