@@ -569,7 +569,8 @@ void ServerManager::send_redirection(Client &client, std::string request_method)
 		response.make_status_body(client.server->redirect_url);
 	else
 		response.make_status_body();
-	response.append_header("Server", client.server->server_name);
+	if (client.server->server_name != "")
+		response.append_header("Server", client.server->server_name);
 	response.append_header("Date", get_current_date_GMT());
 	response.append_header("Content-Type", "text/html");
 	response.append_header("Content-Length", NumberToString(response.get_body_size()));
