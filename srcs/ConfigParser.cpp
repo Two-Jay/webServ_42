@@ -153,11 +153,19 @@ int ConfigParser::set_server_values(Server *server, const std::string key, const
 	}
 	else if (key == "listen")
 	{
-		std::vector<std::string> tmp = split(value, ':');
-		if (server->host != "" && server->host != tmp[0])
-			return FAILED;
-		server->host = tmp[0];
-		server->port = tmp[1];
+		if (value.find_first_of(':') == std::string::npos)
+		{
+			server->host = "0.0.0.0";
+			server->port = value;
+		}
+		else
+		{
+			std::vector<std::string> tmp = split(value, ':');
+			if (server->host != "" && server->host != tmp[0])
+				return FAILED;
+			server->host = tmp[0];
+			server->port = tmp[1];
+		}
 	}
 	else if (key == "root")
 	{
